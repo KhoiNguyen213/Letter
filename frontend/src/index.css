@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Outfit:wght@300;400;500;600&display=swap');
+@import "tailwindcss";
+
+
+@theme {
+  --font-serif: "EB Garamond", "Libre Baskerville", "Crimson Text", Georgia, serif;
+  --font-sans: "Outfit", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-gold-text: #cfa052;
+  --color-gold-accent: #e6c387;
+  --color-bg-dark: #0b0b0c;
+  --color-bg-paper: #121214;
+  --color-border-warm: #222226;
+}
+
+/* Base resets and defaults */
+html, body {
+  background-color: var(--color-bg-dark);
+  color: #dfdad0;
+  font-family: var(--font-sans);
+  letter-spacing: 0.02em;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Elegant Paper Texture & Vintage Vibe */
+.paper-dark {
+  background-color: #121214;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(207, 160, 82, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(207, 160, 82, 0.02) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(207, 160, 82, 0.03) 0px, transparent 50%);
+  border: 1px solid rgba(207, 160, 82, 0.08);
+  box-shadow: 
+    0 15px 35px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.02);
+}
+
+.paper-dark:hover {
+  border-color: rgba(207, 160, 82, 0.15);
+}
+
+/* Old letter page paper styling */
+.letter-page {
+  background-color: #161619;
+  background-image: 
+    linear-gradient(rgba(207, 160, 82, 0.01) 1px, transparent 1px),
+    radial-gradient(at 50% 0%, rgba(207, 160, 82, 0.04) 0px, transparent 60%);
+  background-size: 100% 2rem, 100% 100%;
+  border: 1px solid rgba(207, 160, 82, 0.12);
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.75),
+    inset 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #0b0b0c;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f1f23;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #cfa052;
+}
+
+/* Text selections */
+::selection {
+  background-color: rgba(207, 160, 82, 0.15);
+  color: #ffffff;
+}
+
+/* Typewriter/handwriting animation helper classes */
+.handwriting-reveal {
+  font-family: var(--font-serif);
+  line-height: 1.8;
+  font-size: 1.25rem;
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #e6c387 0%, #cfa052 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Micro-animations and transitions */
+.transition-serene {
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Audio Wave Visualizer Simulation */
+@keyframes wave-play {
+  0%, 100% { height: 4px; }
+  50% { height: 16px; }
+}
+
+.wave-bar {
+  width: 2px;
+  background-color: #cfa052;
+  border-radius: 1px;
+}
+
+.wave-bar-active {
+  animation: wave-play 1.2s ease-in-out infinite;
+}

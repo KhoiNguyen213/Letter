@@ -1,0 +1,34 @@
+{
+  "inspiration_prompt": "Inspiration Prompt",
+  "draw_prompt": "Draw another prompt",
+  "search_placeholder": "Search recipient, title, memories...",
+  "all_tags": "All Tags",
+  "all_statuses": "All Statuses",
+  "statuses": {
+    "draft": "Drafts",
+    "sealed": "Sealed (Time Capsule)",
+    "shared": "Shared",
+    "archived": "Archived"
+  },
+  "sort": {
+    "newest": "Created: Newest",
+    "oldest": "Created: Oldest",
+    "memory_newest": "Memory Date: Newest",
+    "memory_oldest": "Memory Date: Oldest"
+  },
+  "write_letter": "Write Letter",
+  "no_memories": "No memories written here yet.",
+  "create_first": "Create your first entry",
+  "status_tags": {
+    "Draft": "Draft",
+    "Sealed": "Sealed",
+    "Shared": "Shared",
+    "Archived": "Archived"
+  },
+  "to_recipient": "To {{name}}",
+  "no_content_yet": "No written content yet...",
+  "written_on": "Written on {{date}}",
+  "undated": "Undated",
+  "capsule": "Capsule",
+  "db_warning": "Connection to database failed. Please verify that your MongoDB daemon is running locally on port 27017."
+}

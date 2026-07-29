@@ -1,0 +1,14 @@
+{
+  "language": {
+    "en": "English",
+    "vi": "Tiếng Việt"
+  },
+  "loading": "Preparing parchment...",
+  "back_to_index": "Back to Index",
+  "back_to_dashboard": "Back to Dashboard",
+  "footer_quote": "\"A quiet place where memories become letters.\"",
+  "retry": "Retry",
+  "close": "Close",
+  "write": "Write",
+  "index": "Index"
+}

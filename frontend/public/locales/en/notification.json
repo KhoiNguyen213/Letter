@@ -1,0 +1,23 @@
+{
+  "voice": {
+    "record_title": "Voice Note Recording",
+    "microphone_error": "Could not access microphone. Please check browser permissions.",
+    "attach_desc": "Attach a voice reflection",
+    "start_button": "Start Recording",
+    "stop_button": "Stop Recording",
+    "discard_tooltip": "Discard Recording",
+    "apply_button": "Apply",
+    "recorded": "Recorded"
+  },
+  "player": {
+    "melody_attached": "Background Melody Attached",
+    "voice_attached": "Voice Reflection Attached",
+    "spoken_memory": "Spoken Memory",
+    "owner": "Owner"
+  },
+  "error_boundary": {
+    "title": "Something went wrong",
+    "desc": "An unexpected runtime error occurred while rendering this page:",
+    "button": "Reload Page"
+  }
+}

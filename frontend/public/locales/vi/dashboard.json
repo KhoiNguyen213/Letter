@@ -1,0 +1,34 @@
+{
+  "inspiration_prompt": "Gợi ý truyền cảm hứng",
+  "draw_prompt": "Lấy gợi ý khác",
+  "search_placeholder": "Tìm kiếm người nhận, tiêu đề, ký ức...",
+  "all_tags": "Tất cả nhãn",
+  "all_statuses": "Tất cả trạng thái",
+  "statuses": {
+    "draft": "Bản nháp",
+    "sealed": "Đã niêm phong (Hộp thời gian)",
+    "shared": "Đã chia sẻ",
+    "archived": "Đã lưu trữ"
+  },
+  "sort": {
+    "newest": "Mới nhất",
+    "oldest": "Cũ nhất",
+    "memory_newest": "Ngày kỷ niệm: Mới nhất",
+    "memory_oldest": "Ngày kỷ niệm: Cũ nhất"
+  },
+  "write_letter": "Viết thư",
+  "no_memories": "Chưa có ký ức nào được viết ở đây.",
+  "create_first": "Tạo mục nhập đầu tiên của bạn",
+  "status_tags": {
+    "Draft": "Bản nháp",
+    "Sealed": "Niêm phong",
+    "Shared": "Chia sẻ",
+    "Archived": "Lưu trữ"
+  },
+  "to_recipient": "Gửi {{name}}",
+  "no_content_yet": "Chưa có nội dung viết...",
+  "written_on": "Được viết vào ngày {{date}}",
+  "undated": "Không có ngày",
+  "capsule": "Thời gian",
+  "db_warning": "Kết nối cơ sở dữ liệu thất bại. Vui lòng kiểm tra xem tiến trình MongoDB đang chạy trên cổng 27017."
+}

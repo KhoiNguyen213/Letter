@@ -1,0 +1,14 @@
+{
+  "language": {
+    "en": "English",
+    "vi": "Tiếng Việt"
+  },
+  "loading": "Đang chuẩn bị giấy viết thư...",
+  "back_to_index": "Quay lại Trang chủ",
+  "back_to_dashboard": "Quay lại Bảng điều khiển",
+  "footer_quote": "\"Một nơi yên tĩnh nơi ký ức trở thành những lá thư.\"",
+  "retry": "Thử lại",
+  "close": "Đóng",
+  "write": "Viết",
+  "index": "Trang chủ"
+}

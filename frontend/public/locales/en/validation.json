@@ -1,0 +1,12 @@
+{
+  "title_required": "Title is required.",
+  "recipient_required": "Recipient is required.",
+  "errors": {
+    "LETTER_NOT_FOUND": "Letter not found.",
+    "UNAUTHORIZED": "Access denied.",
+    "INVALID_ID": "Invalid letter ID format.",
+    "GENERIC_ERROR": "There was a problem retrieving your letter. Please verify the connection.",
+    "TIMEOUT": "The server is taking too long to respond. Please check your connection.",
+    "CONNECTION_FAILED": "Cannot reach the server. Please verify your connection or try again later."
+  }
+}

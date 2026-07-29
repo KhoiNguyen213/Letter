@@ -1,0 +1,23 @@
+{
+  "voice": {
+    "record_title": "Ghi âm lời nói",
+    "microphone_error": "Không thể truy cập micrô. Vui lòng kiểm tra quyền của trình duyệt.",
+    "attach_desc": "Đính kèm lời ghi âm cảm nhận",
+    "start_button": "Bắt đầu Ghi âm",
+    "stop_button": "Dừng Ghi âm",
+    "discard_tooltip": "Hủy bản ghi âm",
+    "apply_button": "Áp dụng",
+    "recorded": "Đã ghi âm"
+  },
+  "player": {
+    "melody_attached": "Giai điệu nền đi kèm",
+    "voice_attached": "Lời nói cảm nhận đi kèm",
+    "spoken_memory": "Ghi âm ký ức",
+    "owner": "Chủ sở hữu"
+  },
+  "error_boundary": {
+    "title": "Đã xảy ra sự cố",
+    "desc": "Lỗi thời gian chạy không mong muốn xảy ra khi hiển thị trang này:",
+    "button": "Tải lại trang"
+  }
+}
