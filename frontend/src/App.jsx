@@ -74,7 +74,7 @@ const QuickCreate = () => {
 };
 
 export default function App() {
-  if (!API_BASE) {
+  if (!import.meta.env.VITE_API_URL && !import.meta.env.DEV) {
     return (
       <div className="min-h-screen bg-bg-dark flex items-center justify-center p-4">
         <div className="paper-dark p-8 rounded-2xl max-w-md text-center border border-red-500/20">

@@ -30,5 +30,5 @@
   "written_on": "Được viết vào ngày {{date}}",
   "undated": "Không có ngày",
   "capsule": "Thời gian",
-  "db_warning": "Kết nối cơ sở dữ liệu thất bại. Vui lòng kiểm tra xem tiến trình MongoDB đang chạy trên cổng 27017."
+  "db_warning": "Không thể kết nối với máy chủ."
 }
