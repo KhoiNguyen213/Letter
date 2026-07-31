@@ -37,4 +37,46 @@ router.get('/verify', (req, res) => {
   }
 });
 
+// Route to get session status (alias/standard auth endpoint)
+router.get('/session', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ authenticated: false, message: 'Unauthorized' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return res.json({ authenticated: true, owner: decoded.owner });
+  } catch (error) {
+    return res.status(401).json({ authenticated: false, message: 'Invalid or expired session' });
+  }
+});
+
+// Private registration disabled route
+router.post('/register', (req, res) => {
+  return res.status(403).json({
+    message: 'Registration is disabled on this private letter instance.'
+  });
+});
+
+// Refresh token route
+router.post('/refresh', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { ignoreExpiration: true });
+    const newToken = jwt.sign({ owner: true }, process.env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+    return res.json({ token: newToken });
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+});
+
 export default router;

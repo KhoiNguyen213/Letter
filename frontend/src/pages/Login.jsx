@@ -31,7 +31,19 @@ export default function Login() {
         setError(t('auth:error_invalid'));
       }
     } catch (err) {
-      setError(t('dashboard:db_warning'));
+      if (err.code === 'AUTH_FAILED') {
+        setError(t('auth:error_invalid'));
+      } else if (err.code === 'SERVER_OFFLINE') {
+        setError(t('auth:error_server_offline'));
+      } else if (err.code === 'DATABASE_UNAVAILABLE') {
+        setError(t('auth:error_db_unavailable'));
+      } else if (err.code === 'API_TIMEOUT') {
+        setError(t('auth:error_timeout'));
+      } else if (err.code === 'CORS_ERROR') {
+        setError(t('auth:error_cors'));
+      } else {
+        setError(t('auth:error_internal'));
+      }
     } finally {
       setIsSubmitting(false);
     }

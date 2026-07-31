@@ -15,7 +15,7 @@ export default function Dashboard() {
   const [sort, setSort] = useState('newest');
   const [promptIndex, setPromptIndex] = useState(0);
   const [allTags, setAllTags] = useState([]);
-  const [dbError, setDbError] = useState(false);
+  const [dbError, setDbError] = useState('');
 
   const navigate = useNavigate();
 
@@ -31,7 +31,7 @@ export default function Dashboard() {
 
   const fetchLetters = async () => {
     try {
-      setDbError(false);
+      setDbError('');
       let queryParams = new URLSearchParams();
       if (search) queryParams.append('search', search);
       if (selectedTag) queryParams.append('tag', selectedTag);
@@ -53,7 +53,7 @@ export default function Dashboard() {
       setAllTags(Array.from(tagsSet));
     } catch (err) {
       console.error('Error fetching letters:', err);
-      setDbError(true);
+      setDbError(err.code || 'SERVER_OFFLINE');
     } finally {
       setLoading(false);
     }
@@ -64,7 +64,14 @@ export default function Dashboard() {
       const newLetter = await apiFetch('/letters', { method: 'POST' });
       navigate(`/edit/${newLetter._id}`);
     } catch (err) {
-      alert(t('dashboard:db_warning'));
+      const errorMsg = err.code === 'DATABASE_UNAVAILABLE' 
+        ? t('auth:error_db_unavailable')
+        : err.code === 'SERVER_OFFLINE'
+        ? t('auth:error_server_offline')
+        : err.code === 'API_TIMEOUT'
+        ? t('auth:error_timeout')
+        : t('auth:error_internal');
+      alert(errorMsg);
     }
   };
 
@@ -134,7 +141,15 @@ export default function Dashboard() {
       {/* Database Warning */}
       {dbError && (
         <div className="mb-6 p-4 rounded-lg bg-red-950/20 border border-red-900/30 text-red-300 text-xs font-serif text-center">
-          ⚠️ {t('dashboard:db_warning')}
+          ⚠️ {dbError === 'DATABASE_UNAVAILABLE' 
+              ? t('auth:error_db_unavailable') 
+              : dbError === 'API_TIMEOUT'
+              ? t('auth:error_timeout')
+              : dbError === 'CORS_ERROR'
+              ? t('auth:error_cors')
+              : dbError === 'SERVER_OFFLINE'
+              ? t('auth:error_server_offline')
+              : t('auth:error_internal')}
         </div>
       )}
 

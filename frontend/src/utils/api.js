@@ -39,16 +39,39 @@ export const apiFetch = async (endpoint, options = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `API error: ${response.status}`);
+      const error = new Error(errorData.message || `API error: ${response.status}`);
+      error.status = response.status;
+      
+      // Determine error code
+      if (response.status === 401) {
+        error.code = 'AUTH_FAILED';
+      } else if (response.status === 503) {
+        error.code = 'DATABASE_UNAVAILABLE';
+      } else if (response.status === 403 && errorData.message && errorData.message.includes('CORS')) {
+        error.code = 'CORS_ERROR';
+      } else {
+        error.code = 'INTERNAL_SERVER_ERROR';
+      }
+      throw error;
     }
 
     return response.json();
   } catch (err) {
     clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      throw new Error('API_TIMEOUT');
+    if (err.status) {
+      throw err;
     }
-    throw err;
+    if (err.name === 'AbortError') {
+      const error = new Error('Request timeout');
+      error.code = 'API_TIMEOUT';
+      error.status = 408;
+      throw error;
+    }
+    const error = new Error('Unable to connect to the server');
+    error.code = 'SERVER_OFFLINE';
+    error.status = 503;
+    error.originalError = err;
+    throw error;
   }
 };
 

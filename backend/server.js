@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -12,6 +12,13 @@ import authRoutes from './routes/auth.js';
 import letterRoutes from './routes/letters.js';
 import shareRoutes from './routes/share.js';
 import uploadRoutes from './routes/upload.js';
+
+// Resolve dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load env variables relative to server.js
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // 1. Environment Validation
 const requiredEnv = ['JWT_SECRET', 'OWNER_PASSWORD'];
@@ -29,10 +36,6 @@ if (missingEnv.length > 0 || !dbUri) {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Resolve dirname for static file serving
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // Production Security & Middleware
 app.use(helmet({
   crossOriginResourcePolicy: false, // Permits cross-origin audio/image loading from static paths
@@ -42,6 +45,9 @@ app.use(compression());
 // CORS Whitelisting Setup
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:5174',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -53,7 +59,7 @@ app.use(cors({
     if (isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error(`Not allowed by CORS: ${origin}`));
     }
   },
   credentials: true
@@ -62,6 +68,34 @@ app.use(cors({
 // Limit request sizes to 10MB
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// Log every failed response (status >= 400)
+app.use((req, res, next) => {
+  const originalJson = res.json;
+  const originalSend = res.send;
+  let errorPayload = null;
+
+  res.json = function (body) {
+    if (res.statusCode >= 400) {
+      errorPayload = body;
+    }
+    return originalJson.apply(this, arguments);
+  };
+
+  res.send = function (body) {
+    if (res.statusCode >= 400) {
+      errorPayload = body;
+    }
+    return originalSend.apply(this, arguments);
+  };
+
+  res.on('finish', () => {
+    if (res.statusCode >= 400) {
+      console.warn(`[FAILED REQUEST] Route: ${req.method} ${req.originalUrl} | Status: ${res.statusCode} | Response:`, JSON.stringify(errorPayload));
+    }
+  });
+  next();
+});
 
 // Rate limiter on authentication endpoints
 const authLimiter = rateLimit({
@@ -74,11 +108,21 @@ app.use('/api/auth', authLimiter);
 // Static file serving for uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Database connection readiness check middleware
+const checkDbConnection = (req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: 'Database unavailable'
+    });
+  }
+  next();
+};
+
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/letters', letterRoutes);
-app.use('/api/share', shareRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use('/api/letters', checkDbConnection, letterRoutes);
+app.use('/api/share', checkDbConnection, shareRoutes);
+app.use('/api/upload', checkDbConnection, uploadRoutes);
 
 // Enhanced Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -123,19 +167,34 @@ connectWithRetry();
 
 // Global unhandled error handling middleware
 app.use((err, req, res, next) => {
-  if (err.message === 'Not allowed by CORS') {
+  const statusCode = err.status || err.statusCode || 500;
+  
+  // Clear and detailed logging of failed request
+  console.error(`\n=== UNHANDLED EXCEPTION ===`);
+  console.error(`Route: ${req.method} ${req.originalUrl}`);
+  console.error(`Status Code: ${statusCode}`);
+  console.error(`Original Error: ${err.message || err}`);
+  if (err.stack) {
+    console.error(`Stack Trace:\n${err.stack}`);
+  }
+  console.error(`===========================\n`);
+
+  if (err.message && err.message.startsWith('Not allowed by CORS')) {
     return res.status(403).json({
-      message: 'Not allowed by CORS'
+      message: err.message
     });
   }
 
-  console.error('Unhandled Server Error:', err);
-  const message = process.env.NODE_ENV === 'production' 
+  const message = process.env.NODE_ENV === 'production' && statusCode === 500
     ? 'An unexpected error occurred. Please try again later.'
     : err.message;
-  res.status(err.status || 500).json({
+    
+  res.status(statusCode).json({
     message,
-    error: process.env.NODE_ENV === 'production' ? {} : err
+    error: process.env.NODE_ENV === 'production' ? {} : {
+      message: err.message,
+      stack: err.stack
+    }
   });
 });
 

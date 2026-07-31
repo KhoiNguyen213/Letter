@@ -43,7 +43,14 @@ const QuickCreate = () => {
         navigate(`/edit/${letter._id}`, { replace: true });
       } catch (err) {
         console.error(err);
-        setError(t('dashboard:db_warning'));
+        const errorMsg = err.code === 'DATABASE_UNAVAILABLE'
+          ? t('auth:error_db_unavailable')
+          : err.code === 'SERVER_OFFLINE'
+          ? t('auth:error_server_offline')
+          : err.code === 'API_TIMEOUT'
+          ? t('auth:error_timeout')
+          : t('auth:error_internal');
+        setError(errorMsg);
       }
     };
 
