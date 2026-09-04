@@ -1,5 +1,7 @@
-export const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-export const SERVER_BASE = API_BASE ? API_BASE.replace('/api', '') : '';
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const cleanApiUrl = rawApiUrl.trim().replace(/\/$/, '');
+export const API_BASE = cleanApiUrl.endsWith('/api') ? cleanApiUrl : `${cleanApiUrl}/api`;
+export const SERVER_BASE = API_BASE.replace(/\/api$/, '');
 
 export const getAuthToken = () => localStorage.getItem('letters_token');
 
