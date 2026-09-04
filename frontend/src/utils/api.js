@@ -25,9 +25,9 @@ export const apiFetch = async (endpoint, options = {}) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // 15 seconds request timeout limit
+  // 60 seconds request timeout limit (to accommodate Render free tier cold starts)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
     const response = await fetch(`${API_BASE}${endpoint}`, {

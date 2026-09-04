@@ -55,17 +55,21 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    // Allow non-browser requests (Postman, curl, server-to-server)
     if (!origin) return callback(null, true);
     
     const cleanOrigin = origin.trim().replace(/\/$/, '');
-    const isAllowed = allowedOrigins.includes(cleanOrigin) || cleanOrigin.startsWith('http://localhost') || cleanOrigin.startsWith('http://127.0.0.1');
+    const isAllowed = 
+      allowedOrigins.includes(cleanOrigin) || 
+      cleanOrigin.startsWith('http://localhost') || 
+      cleanOrigin.startsWith('http://127.0.0.1') ||
+      cleanOrigin.endsWith('.vercel.app') ||
+      cleanOrigin.endsWith('.netlify.app') ||
+      cleanOrigin.endsWith('.onrender.com');
 
     if (isAllowed) {
       callback(null, true);
     } else {
       console.warn(`[CORS NOTICE] Origin rejected or unlisted: ${origin}`);
-      // Returning callback(null, false) allows CORS middleware to respond gracefully without Express 403 preflight exception
       callback(null, false);
     }
   },
