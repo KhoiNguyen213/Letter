@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../utils/api.js';
+import { apiFetch, uploadFile, SERVER_BASE } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
-import AIPanel from '../components/AIPanel.jsx';
-import { Calendar as CalendarIcon, Sparkles, Plus, Search, Tag, Trash2, Edit3, Heart, Save, Check, X } from 'lucide-react';
+import AudioPlayer from '../components/AudioPlayer.jsx';
+import { Calendar as CalendarIcon, Plus, Search, Tag, Trash2, Edit3, Save, Image as ImageIcon, Music, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const MOODS = [
@@ -31,13 +31,12 @@ export default function DiaryPage() {
   const [formMood, setFormMood] = useState('Peaceful');
   const [formTags, setFormTags] = useState('');
   const [formPrivateNotes, setFormPrivateNotes] = useState('');
-  const [saving, setSaving] = useState(false);
+  const [formImage, setFormImage] = useState('');
+  const [formAudio, setFormAudio] = useState({ url: '', title: '', duration: 0 });
 
-  // AI Drawer
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiContent, setAiContent] = useState('');
-  const [aiTitle, setAiTitle] = useState('');
-  const [aiMood, setAiMood] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchEntries();
@@ -67,6 +66,8 @@ export default function DiaryPage() {
     setFormMood('Peaceful');
     setFormTags('');
     setFormPrivateNotes('');
+    setFormImage('');
+    setFormAudio({ url: '', title: '', duration: 0 });
     setIsEditing(true);
   };
 
@@ -78,7 +79,43 @@ export default function DiaryPage() {
     setFormMood(entry.mood || 'Peaceful');
     setFormTags(entry.tags ? entry.tags.join(', ') : '');
     setFormPrivateNotes(entry.privateNotes || '');
+    setFormImage(entry.image || '');
+    setFormAudio(entry.audio || { url: '', title: '', duration: 0 });
     setIsEditing(true);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const res = await uploadFile(file);
+      setFormImage(res.url);
+    } catch (err) {
+      alert('Lỗi tải ảnh lên: ' + err.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleAudioUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingAudio(true);
+    try {
+      const res = await uploadFile(file, file.name);
+      setFormAudio({
+        url: res.url,
+        title: res.title || file.name,
+        duration: res.duration || 0,
+      });
+    } catch (err) {
+      alert('Lỗi tải âm thanh lên: ' + err.message);
+    } finally {
+      setUploadingAudio(false);
+    }
   };
 
   const handleSaveEntry = async (e) => {
@@ -98,6 +135,8 @@ export default function DiaryPage() {
       mood: formMood,
       tags: tagsArray,
       privateNotes: formPrivateNotes,
+      image: formImage,
+      audio: formAudio,
     };
 
     try {
@@ -142,13 +181,6 @@ export default function DiaryPage() {
     }).format(new Date(dateString));
   };
 
-  const openAIReflection = (entry) => {
-    setAiContent(entry.content);
-    setAiTitle(entry.title || 'Nhật ký ' + formatDate(entry.date));
-    setAiMood(entry.mood);
-    setAiOpen(true);
-  };
-
   return (
     <OwnerLayout>
       {/* Header */}
@@ -159,7 +191,7 @@ export default function DiaryPage() {
             <span>Nhật Ký Tĩnh Lặng</span>
           </h1>
           <p className="font-serif italic text-xs text-zinc-500">
-            Mỗi ngày một góc nhìn nhẹ nhàng, không áp lực.
+            Mỗi ngày một góc nhìn nhẹ nhàng kèm hình ảnh & âm thanh kỷ niệm.
           </p>
         </div>
 
@@ -174,7 +206,7 @@ export default function DiaryPage() {
         )}
       </div>
 
-      {/* Inline Distraction-Free Editor */}
+      {/* Inline Editor */}
       {isEditing && (
         <form onSubmit={handleSaveEntry} className="paper-dark p-6 sm:p-8 rounded-2xl border border-gold-text/20 mb-10 flex flex-col gap-6 shadow-2xl">
           <div className="flex items-center justify-between border-b border-border-warm/40 pb-4">
@@ -215,7 +247,7 @@ export default function DiaryPage() {
               Hôm nay của bạn như thế nào?
             </label>
             <textarea
-              rows={8}
+              rows={7}
               placeholder="Viết những gì bạn cảm nhận..."
               value={formContent}
               onChange={(e) => setFormContent(e.target.value)}
@@ -246,6 +278,70 @@ export default function DiaryPage() {
             </div>
           </div>
 
+          {/* Media Attachments Section (Image & Audio) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border-warm/40 pt-4">
+            {/* Image attachment */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center gap-1">
+                <ImageIcon size={12} className="text-gold-accent" />
+                Hình ảnh đính kèm:
+              </label>
+              {formImage ? (
+                <div className="relative rounded-xl overflow-hidden h-32 border border-border-warm">
+                  <img
+                    src={formImage.startsWith('http') ? formImage : `${SERVER_BASE}${formImage}`}
+                    alt="Uploaded"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormImage('')}
+                    className="absolute top-2 right-2 bg-black/70 hover:bg-black text-red-400 p-1 rounded-full text-xs"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <label className="border border-dashed border-border-warm hover:border-gold-text/30 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-serene bg-bg-dark">
+                  <span className="text-xs text-zinc-400 font-sans">
+                    {uploadingImage ? 'Đang tải ảnh...' : '+ Thêm hình ảnh kỷ niệm'}
+                  </span>
+                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                </label>
+              )}
+            </div>
+
+            {/* Audio attachment */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center gap-1">
+                <Music size={12} className="text-gold-accent" />
+                Âm thanh / Nhạc nền / Ghi âm:
+              </label>
+              {formAudio && formAudio.url ? (
+                <div className="flex flex-col gap-2 p-3 bg-bg-dark border border-border-warm rounded-xl relative">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-300 font-serif truncate pr-4">{formAudio.title || 'Tệp âm thanh'}</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormAudio({ url: '', title: '', duration: 0 })}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <AudioPlayer url={formAudio.url} title={formAudio.title} />
+                </div>
+              ) : (
+                <label className="border border-dashed border-border-warm hover:border-gold-text/30 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-serene bg-bg-dark">
+                  <span className="text-xs text-zinc-400 font-sans">
+                    {uploadingAudio ? 'Đang tải tệp...' : '+ Thêm tệp âm thanh/ghi âm'}
+                  </span>
+                  <input type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden" />
+                </label>
+              )}
+            </div>
+          </div>
+
           {/* Tags & Private Notes Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
@@ -254,7 +350,7 @@ export default function DiaryPage() {
               </label>
               <input
                 type="text"
-                placeholder="VD: Gia đình, Công việc, Suy ngẫm"
+                placeholder="VD: Gia đình, Kỷ niệm, Suy ngẫm"
                 value={formTags}
                 onChange={(e) => setFormTags(e.target.value)}
                 className="bg-bg-dark border border-border-warm rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-700 focus:outline-none focus:border-gold-text/40 font-sans"
@@ -263,11 +359,11 @@ export default function DiaryPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans">
-                Ghi chú riêng tư thêm (Tùy chọn):
+                Ghi chú riêng tư thêm:
               </label>
               <input
                 type="text"
-                placeholder="Điều chỉ mình bạn biết..."
+                placeholder="Ghi chú bí mật..."
                 value={formPrivateNotes}
                 onChange={(e) => setFormPrivateNotes(e.target.value)}
                 className="bg-bg-dark border border-border-warm rounded-lg px-3 py-2 text-xs text-zinc-300 placeholder-zinc-700 focus:outline-none focus:border-gold-text/40 font-sans"
@@ -347,7 +443,7 @@ export default function DiaryPage() {
             return (
               <div
                 key={entry._id}
-                className="paper-dark p-6 rounded-2xl border border-gold-text/10 hover:border-gold-text/25 transition-serene flex flex-col gap-3 group"
+                className="paper-dark p-6 rounded-2xl border border-gold-text/10 hover:border-gold-text/25 transition-serene flex flex-col gap-4 group"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-border-warm/40 pb-3">
@@ -361,13 +457,6 @@ export default function DiaryPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => openAIReflection(entry)}
-                      className="text-zinc-500 hover:text-gold-accent p-1 transition-serene"
-                      title="Phân tích với Gemini AI"
-                    >
-                      <Sparkles size={14} />
-                    </button>
                     <button
                       onClick={() => handleEditEntry(entry)}
                       className="text-zinc-500 hover:text-zinc-300 p-1 transition-serene"
@@ -385,6 +474,17 @@ export default function DiaryPage() {
                   </div>
                 </div>
 
+                {/* Attached Image if exists */}
+                {entry.image && (
+                  <div className="rounded-xl overflow-hidden max-h-64 w-full border border-border-warm">
+                    <img
+                      src={entry.image.startsWith('http') ? entry.image : `${SERVER_BASE}${entry.image}`}
+                      alt="Diary entry"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
                 {/* Title & Content */}
                 {entry.title && (
                   <h3 className="font-serif text-lg text-zinc-100 font-medium">
@@ -396,16 +496,26 @@ export default function DiaryPage() {
                   {entry.content}
                 </div>
 
+                {/* Attached Audio Player if exists */}
+                {entry.audio && entry.audio.url && (
+                  <div className="pt-2 border-t border-border-warm/30">
+                    <span className="text-[10px] text-zinc-500 uppercase tracking-widest font-sans mb-1 block">
+                      🎵 Âm thanh đính kèm
+                    </span>
+                    <AudioPlayer url={entry.audio.url} title={entry.audio.title || 'Nhật ký âm thanh'} />
+                  </div>
+                )}
+
                 {/* Private Notes */}
                 {entry.privateNotes && (
-                  <div className="mt-2 p-3 rounded-xl bg-bg-dark/70 border border-zinc-800/80 text-xs text-zinc-400 font-serif italic">
+                  <div className="mt-1 p-3 rounded-xl bg-bg-dark/70 border border-zinc-800/80 text-xs text-zinc-400 font-serif italic">
                     🔒 Ghi chú riêng: {entry.privateNotes}
                   </div>
                 )}
 
                 {/* Footer Tags */}
                 {entry.tags && entry.tags.length > 0 && (
-                  <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-border-warm/30 text-[10px] text-zinc-500 font-sans">
+                  <div className="flex items-center gap-1.5 mt-1 pt-2 border-t border-border-warm/30 text-[10px] text-zinc-500 font-sans">
                     <Tag size={11} className="text-zinc-600" />
                     <span>{entry.tags.join(', ')}</span>
                   </div>
@@ -415,16 +525,6 @@ export default function DiaryPage() {
           })}
         </div>
       )}
-
-      {/* AI Drawer */}
-      <AIPanel
-        isOpen={aiOpen}
-        onClose={() => setAiOpen(false)}
-        initialContent={aiContent}
-        title={aiTitle}
-        mood={aiMood}
-        contextType="diary"
-      />
     </OwnerLayout>
   );
 }

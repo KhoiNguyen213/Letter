@@ -21,7 +21,6 @@ export default function OwnerLayout({ children }) {
     { path: '/letters', label: 'Lá thư', icon: Mail },
     { path: '/diary', label: 'Nhật ký', icon: Calendar },
     { path: '/notes', label: 'Ghi chú', icon: StickyNote },
-    { path: '/ai', label: 'Góc AI', icon: Sparkles },
   ];
 
   return (

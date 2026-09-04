@@ -213,11 +213,14 @@ export default function LettersPage() {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={(e) => openAIReflection(letter, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/letters/edit/${letter._id}`);
+                      }}
                       className="text-zinc-500 hover:text-gold-accent p-1 transition-serene"
-                      title="Phân tích với Gemini AI"
+                      title="Chỉnh sửa thư"
                     >
-                      <Sparkles size={14} />
+                      <Edit3 size={14} />
                     </button>
                     <button
                       onClick={(e) => toggleFavorite(letter._id, e)}

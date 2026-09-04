@@ -61,13 +61,15 @@ router.get('/:id', requireOwner, async (req, res) => {
 // 3. Create note
 router.post('/', requireOwner, async (req, res) => {
   try {
-    const { title, content, category, tags, isPinned } = req.body || {};
+    const { title, content, category, tags, isPinned, image, audio } = req.body || {};
     const note = new Note({
       title: title || 'Ghi chú mới',
       content: content || '',
       category: category || 'Personal',
       tags: tags || [],
       isPinned: isPinned || false,
+      image: image || '',
+      audio: audio || { url: '', title: '', duration: 0 },
     });
 
     const saved = await note.save();

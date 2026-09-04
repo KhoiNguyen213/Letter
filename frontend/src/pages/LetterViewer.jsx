@@ -357,7 +357,14 @@ export default function LetterViewer() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate(`/edit/${letter._id}`)}
+              onClick={() => navigate('/letters')}
+              className="px-3 py-1.5 bg-zinc-900 border border-border-warm rounded text-xs text-zinc-400 hover:text-gold-accent flex items-center gap-1 transition-serene cursor-pointer"
+            >
+              ← Quay lại
+            </button>
+
+            <button
+              onClick={() => navigate(`/letters/edit/${letter._id}`)}
               className="px-3.5 py-1.5 bg-zinc-900 border border-border-warm rounded text-xs text-zinc-400 hover:text-gold-accent hover:border-gold-text/20 flex items-center gap-1 transition-serene cursor-pointer"
               aria-label={t('viewer:edit_letter')}
             >

@@ -32,6 +32,15 @@ const DiarySchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    image: {
+      type: String, // Path/URL to attached photo
+      default: '',
+    },
+    audio: {
+      url: { type: String, default: '' },
+      title: { type: String, default: '' },
+      duration: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true,

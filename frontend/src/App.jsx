@@ -121,10 +121,28 @@ export default function App() {
             }
           />
 
-          {/* Legacy routes backwards compatibility */}
+          {/* Compatibility routes for /edit/:id and /view/:id */}
           <Route path="/create" element={<Navigate to="/letters/new" replace />} />
-          <Route path="/edit/:id" element={<Navigate to="/letters/edit/:id" replace />} />
-          <Route path="/view/:id" element={<Navigate to="/letters/view/:id" replace />} />
+          <Route
+            path="/edit/:id"
+            element={
+              <PrivateRoute>
+                <ErrorBoundary>
+                  <LetterEditor />
+                </ErrorBoundary>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/view/:id"
+            element={
+              <PrivateRoute>
+                <ErrorBoundary>
+                  <LetterViewer />
+                </ErrorBoundary>
+              </PrivateRoute>
+            }
+          />
 
           {/* Diary Route */}
           <Route

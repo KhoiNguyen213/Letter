@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch } from '../utils/api.js';
+import { apiFetch, uploadFile, SERVER_BASE } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
-import AIPanel from '../components/AIPanel.jsx';
-import { StickyNote, Plus, Search, Tag, Trash2, Edit3, Heart, Save, Sparkles, X, Pin } from 'lucide-react';
+import AudioPlayer from '../components/AudioPlayer.jsx';
+import { StickyNote, Plus, Search, Tag, Trash2, Edit3, Save, Image as ImageIcon, Music, X, Pin } from 'lucide-react';
 
 const CATEGORIES = [
   { id: 'Personal', label: 'Cá nhân' },
@@ -28,12 +28,12 @@ export default function NotesPage() {
   const [formCategory, setFormCategory] = useState('Personal');
   const [formTags, setFormTags] = useState('');
   const [formIsPinned, setFormIsPinned] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [formImage, setFormImage] = useState('');
+  const [formAudio, setFormAudio] = useState({ url: '', title: '', duration: 0 });
 
-  // AI Drawer
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiContent, setAiContent] = useState('');
-  const [aiTitle, setAiTitle] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchNotes();
@@ -62,6 +62,8 @@ export default function NotesPage() {
     setFormCategory('Personal');
     setFormTags('');
     setFormIsPinned(false);
+    setFormImage('');
+    setFormAudio({ url: '', title: '', duration: 0 });
     setIsModalOpen(true);
   };
 
@@ -72,7 +74,43 @@ export default function NotesPage() {
     setFormCategory(note.category || 'Personal');
     setFormTags(note.tags ? note.tags.join(', ') : '');
     setFormIsPinned(note.isPinned || false);
+    setFormImage(note.image || '');
+    setFormAudio(note.audio || { url: '', title: '', duration: 0 });
     setIsModalOpen(true);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const res = await uploadFile(file);
+      setFormImage(res.url);
+    } catch (err) {
+      alert('Lỗi tải ảnh lên: ' + err.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleAudioUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingAudio(true);
+    try {
+      const res = await uploadFile(file, file.name);
+      setFormAudio({
+        url: res.url,
+        title: res.title || file.name,
+        duration: res.duration || 0,
+      });
+    } catch (err) {
+      alert('Lỗi tải âm thanh lên: ' + err.message);
+    } finally {
+      setUploadingAudio(false);
+    }
   };
 
   const handleSaveNote = async (e) => {
@@ -91,6 +129,8 @@ export default function NotesPage() {
       category: formCategory,
       tags: tagsArray,
       isPinned: formIsPinned,
+      image: formImage,
+      audio: formAudio,
     };
 
     try {
@@ -138,13 +178,6 @@ export default function NotesPage() {
     }
   };
 
-  const openAIReflection = (note, e) => {
-    e.stopPropagation();
-    setAiContent(`${note.title}\n\n${note.content}`);
-    setAiTitle(note.title);
-    setAiOpen(true);
-  };
-
   return (
     <OwnerLayout>
       {/* Header */}
@@ -155,7 +188,7 @@ export default function NotesPage() {
             <span>Ghi Chú & Góc Lưu Trữ</span>
           </h1>
           <p className="font-serif italic text-xs text-zinc-500">
-            Lưu giữ mọi ý tưởng, kế hoạch, danh sách và điều quan trọng trong đời sống.
+            Lưu giữ mọi ý tưởng, kế hoạch, danh sách kèm hình ảnh & ghi âm.
           </p>
         </div>
 
@@ -204,7 +237,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {/* Notes Masonry/Grid */}
+      {/* Notes Grid */}
       {loading ? (
         <div className="text-center py-20 font-serif italic text-zinc-500">
           Đang tải không gian ghi chú...
@@ -240,13 +273,6 @@ export default function NotesPage() {
 
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={(e) => openAIReflection(note, e)}
-                      className="text-zinc-500 hover:text-gold-accent p-1 transition-serene"
-                      title="Phân tích với Gemini AI"
-                    >
-                      <Sparkles size={13} />
-                    </button>
-                    <button
                       onClick={(e) => togglePin(note, e)}
                       className={`p-1 transition-serene ${note.isPinned ? 'text-gold-accent' : 'text-zinc-600 hover:text-zinc-400'}`}
                       title={note.isPinned ? 'Bỏ ghim' : 'Ghim lên đầu'}
@@ -263,13 +289,31 @@ export default function NotesPage() {
                   </div>
                 </div>
 
+                {/* Attached Image Thumbnail */}
+                {note.image && (
+                  <div className="rounded-lg overflow-hidden h-32 w-full mb-3 border border-border-warm">
+                    <img
+                      src={note.image.startsWith('http') ? note.image : `${SERVER_BASE}${note.image}`}
+                      alt="Note attached"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+
                 <h3 className="font-serif text-base text-zinc-100 font-semibold mb-2 group-hover:text-gold-accent transition-serene">
                   {note.title}
                 </h3>
 
-                <p className="text-xs text-zinc-300 font-serif whitespace-pre-wrap line-clamp-6 leading-relaxed mb-4">
+                <p className="text-xs text-zinc-300 font-serif whitespace-pre-wrap line-clamp-6 leading-relaxed mb-3">
                   {note.content}
                 </p>
+
+                {/* Attached Audio Player */}
+                {note.audio && note.audio.url && (
+                  <div className="my-2 pt-2 border-t border-border-warm/30" onClick={(e) => e.stopPropagation()}>
+                    <AudioPlayer url={note.audio.url} title={note.audio.title || 'Âm thanh ghi chú'} />
+                  </div>
+                )}
               </div>
 
               {note.tags && note.tags.length > 0 && (
@@ -286,7 +330,7 @@ export default function NotesPage() {
       {/* Modal for Creating / Editing Note */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-lg paper-dark rounded-2xl border border-gold-text/20 p-6 flex flex-col gap-5 shadow-2xl">
+          <div className="w-full max-w-lg paper-dark rounded-2xl border border-gold-text/20 p-6 flex flex-col gap-5 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-border-warm/40 pb-3">
               <h3 className="font-serif text-lg text-zinc-100 font-medium">
                 {editingId ? 'Chỉnh Sửa Ghi Chú' : 'Tạo Ghi Chú Mới'}
@@ -328,12 +372,57 @@ export default function NotesPage() {
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans">Nội dung ghi chú</label>
                 <textarea
-                  rows={6}
+                  rows={5}
                   placeholder="Viết thông tin, suy nghĩ, danh sách..."
                   value={formContent}
                   onChange={(e) => setFormContent(e.target.value)}
                   className="bg-bg-dark border border-border-warm rounded-xl p-3.5 text-xs text-zinc-200 font-serif focus:outline-none focus:border-gold-text/40 leading-relaxed resize-y"
                 />
+              </div>
+
+              {/* Media Upload (Image & Audio) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-border-warm/40 pt-3">
+                {/* Image upload */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center gap-1">
+                    <ImageIcon size={11} className="text-gold-accent" /> Hình ảnh:
+                  </label>
+                  {formImage ? (
+                    <div className="relative rounded-lg overflow-hidden h-24 border border-border-warm">
+                      <img src={formImage.startsWith('http') ? formImage : `${SERVER_BASE}${formImage}`} alt="Note" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => setFormImage('')} className="absolute top-1 right-1 bg-black/70 text-red-400 p-0.5 rounded-full">
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border border-dashed border-border-warm rounded-xl p-3 text-center cursor-pointer bg-bg-dark">
+                      <span className="text-[11px] text-zinc-400 font-sans">{uploadingImage ? 'Đang tải...' : '+ Thêm ảnh'}</span>
+                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                  )}
+                </div>
+
+                {/* Audio upload */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center gap-1">
+                    <Music size={11} className="text-gold-accent" /> Âm thanh:
+                  </label>
+                  {formAudio && formAudio.url ? (
+                    <div className="flex flex-col gap-1 p-2 bg-bg-dark border border-border-warm rounded-xl">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-zinc-300 truncate">{formAudio.title || 'Tệp âm thanh'}</span>
+                        <button type="button" onClick={() => setFormAudio({ url: '', title: '', duration: 0 })} className="text-red-400">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="border border-dashed border-border-warm rounded-xl p-3 text-center cursor-pointer bg-bg-dark">
+                      <span className="text-[11px] text-zinc-400 font-sans">{uploadingAudio ? 'Đang tải...' : '+ Thêm tệp âm thanh'}</span>
+                      <input type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden" />
+                    </label>
+                  )}
+                </div>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -381,15 +470,6 @@ export default function NotesPage() {
           </div>
         </div>
       )}
-
-      {/* AI Drawer */}
-      <AIPanel
-        isOpen={aiOpen}
-        onClose={() => setAiOpen(false)}
-        initialContent={aiContent}
-        title={aiTitle}
-        contextType="note"
-      />
     </OwnerLayout>
   );
 }

@@ -27,6 +27,15 @@ const NoteSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    image: {
+      type: String, // Path/URL to attached photo
+      default: '',
+    },
+    audio: {
+      url: { type: String, default: '' },
+      title: { type: String, default: '' },
+      duration: { type: Number, default: 0 },
+    },
   },
   {
     timestamps: true,
