@@ -1,16 +1,19 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import Login from './pages/Login.jsx';
 import Dashboard from './pages/Dashboard.jsx';
+import LettersPage from './pages/LettersPage.jsx';
 import LetterEditor from './pages/LetterEditor.jsx';
 import LetterViewer from './pages/LetterViewer.jsx';
-import SharedLetter from './pages/SharedLetter.jsx';
+import DiaryPage from './pages/DiaryPage.jsx';
+import NotesPage from './pages/NotesPage.jsx';
+import AIPage from './pages/AIPage.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { useTranslation } from 'react-i18next';
-import { apiFetch, API_BASE } from './utils/api.js';
+import { apiFetch } from './utils/api.js';
 
-// Route protection wrapper
+// Private Route Guard
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
   const { t } = useTranslation();
@@ -18,7 +21,7 @@ const PrivateRoute = ({ children }) => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-bg-dark flex items-center justify-center font-serif italic text-zinc-500">
-        {t('common:loading')}
+        {t('common:loading', 'Đang xác thực không gian riêng...')}
       </div>
     );
   }
@@ -26,12 +29,10 @@ const PrivateRoute = ({ children }) => {
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
-// Helper component to auto-create and redirect
-const QuickCreate = () => {
-  const { t } = useTranslation();
-  const [error, setError] = React.useState('');
+// Helper component to auto-create letter draft
+const QuickCreateLetter = () => {
+  const navigate = useNavigate();
   const [triggered, setTriggered] = React.useState(false);
-  const navigate = React.useNavigate();
 
   React.useEffect(() => {
     if (triggered) return;
@@ -39,75 +40,41 @@ const QuickCreate = () => {
 
     const createDraft = async () => {
       try {
-        const letter = await apiFetch('/letters', { method: 'POST' });
-        navigate(`/edit/${letter._id}`, { replace: true });
+        const letter = await apiFetch('/letters', {
+          method: 'POST',
+          body: JSON.stringify({
+            recipient: 'Gửi bản thân',
+            title: 'Lá thư chưa đặt tên',
+            content: '',
+            status: 'Draft',
+          }),
+        });
+        navigate(`/letters/edit/${letter._id}`, { replace: true });
       } catch (err) {
         console.error(err);
-        const errorMsg = err.code === 'DATABASE_UNAVAILABLE'
-          ? t('auth:error_db_unavailable')
-          : err.code === 'SERVER_OFFLINE'
-          ? t('auth:error_server_offline')
-          : err.code === 'API_TIMEOUT'
-          ? t('auth:error_timeout')
-          : t('auth:error_internal');
-        setError(errorMsg);
+        navigate('/letters', { replace: true });
       }
     };
 
     createDraft();
-  }, [navigate, triggered, t]);
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-bg-dark flex items-center justify-center p-4">
-        <div className="paper-dark p-8 rounded-2xl max-w-sm text-center">
-          <p className="text-red-400 font-serif italic mb-4">{error}</p>
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="text-xs text-gold-accent hover:text-gold-text underline uppercase tracking-widest"
-          >
-            {t('common:back_to_index')}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  }, [navigate, triggered]);
 
   return (
     <div className="min-h-screen bg-bg-dark flex items-center justify-center font-serif italic text-zinc-500">
-      {t('editor:loading_title')}
+      Đang chuẩn bị trang viết thư...
     </div>
   );
 };
 
 export default function App() {
-  if (!import.meta.env.VITE_API_URL && !import.meta.env.DEV) {
-    return (
-      <div className="min-h-screen bg-bg-dark flex items-center justify-center p-4">
-        <div className="paper-dark p-8 rounded-2xl max-w-md text-center border border-red-500/20">
-          <h2 className="text-xl font-serif text-zinc-200 mb-2">Configuration Error</h2>
-          <p className="text-sm text-zinc-400 font-serif italic mb-4">
-            The frontend is missing the backend API URL configuration.
-          </p>
-          <p className="text-xs text-zinc-500 font-sans leading-relaxed">
-            Please define the <code className="text-gold-accent bg-black/40 px-1 py-0.5 rounded font-mono">VITE_API_URL</code> environment variable in your Vercel settings or local <code className="text-gold-accent bg-black/40 px-1 py-0.5 rounded font-mono">.env</code> file.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Sharing Link */}
-          <Route path="/letter/:slug" element={<SharedLetter />} />
-
-          {/* Owner Credentials */}
+          {/* Public Login Route */}
           <Route path="/login" element={<Login />} />
 
-          {/* Owner Dashboard and Letters manager */}
+          {/* Protected Owner Routes */}
           <Route
             path="/dashboard"
             element={
@@ -116,16 +83,25 @@ export default function App() {
               </PrivateRoute>
             }
           />
+
           <Route
-            path="/create"
+            path="/letters"
             element={
               <PrivateRoute>
-                <QuickCreate />
+                <LettersPage />
               </PrivateRoute>
             }
           />
           <Route
-            path="/edit/:id"
+            path="/letters/new"
+            element={
+              <PrivateRoute>
+                <QuickCreateLetter />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/letters/edit/:id"
             element={
               <PrivateRoute>
                 <ErrorBoundary>
@@ -135,12 +111,47 @@ export default function App() {
             }
           />
           <Route
-            path="/view/:id"
+            path="/letters/view/:id"
             element={
               <PrivateRoute>
                 <ErrorBoundary>
                   <LetterViewer />
                 </ErrorBoundary>
+              </PrivateRoute>
+            }
+          />
+
+          {/* Legacy routes backwards compatibility */}
+          <Route path="/create" element={<Navigate to="/letters/new" replace />} />
+          <Route path="/edit/:id" element={<Navigate to="/letters/edit/:id" replace />} />
+          <Route path="/view/:id" element={<Navigate to="/letters/view/:id" replace />} />
+
+          {/* Diary Route */}
+          <Route
+            path="/diary"
+            element={
+              <PrivateRoute>
+                <DiaryPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* Notes Route */}
+          <Route
+            path="/notes"
+            element={
+              <PrivateRoute>
+                <NotesPage />
+              </PrivateRoute>
+            }
+          />
+
+          {/* AI Gemini Space Route */}
+          <Route
+            path="/ai"
+            element={
+              <PrivateRoute>
+                <AIPage />
               </PrivateRoute>
             }
           />

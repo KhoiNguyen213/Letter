@@ -6,19 +6,17 @@ const LetterSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      default: 'Gửi bản thân',
     },
     title: {
       type: String,
       required: true,
       trim: true,
+      default: 'Lá thư chưa đặt tên',
     },
     content: {
       type: String,
       default: '',
-    },
-    mood: {
-      type: String,
-      trim: true,
     },
     tags: [
       {
@@ -26,59 +24,31 @@ const LetterSchema = new mongoose.Schema(
         trim: true,
       },
     ],
-    coverImage: {
-      type: String, // URL/path to local uploaded image
-    },
-    music: {
-      url: { type: String },
-      title: { type: String },
-      artist: { type: String },
-      duration: { type: Number }, // in seconds
-      fileSize: { type: Number }, // in bytes
-    },
-    voice: {
-      url: { type: String },
-      duration: { type: Number }, // in seconds
-      fileSize: { type: Number }, // in bytes
-    },
-    memoryDate: {
-      type: Date,
+    status: {
+      type: String,
+      enum: ['Draft', 'Completed'],
+      default: 'Draft',
     },
     isFavorite: {
       type: Boolean,
       default: false,
     },
-    status: {
+    coverImage: {
       type: String,
-      enum: ['Draft', 'Sealed', 'Shared', 'Archived'],
-      default: 'Draft',
     },
-    unlockDate: {
-      type: Date, // For time capsules
+    music: {
+      url: { type: String },
+      title: { type: String },
+      artist: { type: String },
+      duration: { type: Number },
     },
-    oneTimeOpening: {
-      type: Boolean,
-      default: false,
+    voice: {
+      url: { type: String },
+      duration: { type: Number },
     },
-    openedCount: {
-      type: Number,
-      default: 0,
-    },
-    oneReply: {
-      type: Boolean,
-      default: false,
-    },
-    reply: {
-      type: String, // The single reply left by the viewer
-      trim: true,
-    },
-    shareSlug: {
-      type: String,
-      unique: true,
-      sparse: true, // Allow nulls for drafts
-    },
-    sharePassword: {
-      type: String, // Hashed password
+    memoryDate: {
+      type: Date,
+      default: Date.now,
     },
   },
   {

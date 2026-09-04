@@ -10,7 +10,9 @@ import rateLimit from 'express-rate-limit';
 
 import authRoutes from './routes/auth.js';
 import letterRoutes from './routes/letters.js';
-import shareRoutes from './routes/share.js';
+import diaryRoutes from './routes/diary.js';
+import noteRoutes from './routes/notes.js';
+import aiRoutes from './routes/ai.js';
 import uploadRoutes from './routes/upload.js';
 
 // Resolve dirname
@@ -38,7 +40,7 @@ const PORT = process.env.PORT || 5000;
 
 // Production Security & Middleware
 app.use(helmet({
-  crossOriginResourcePolicy: false, // Permits cross-origin audio/image loading from static paths
+  crossOriginResourcePolicy: false,
 }));
 app.use(compression());
 
@@ -49,27 +51,38 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'http://127.0.0.1:5174',
   process.env.FRONTEND_URL
-].filter(Boolean);
+].filter(Boolean).map(url => url.trim().replace(/\/$/, ''));
 
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
+    // Allow non-browser requests (Postman, curl, server-to-server)
     if (!origin) return callback(null, true);
+    
     const cleanOrigin = origin.trim().replace(/\/$/, '');
-    const isAllowed = allowedOrigins.some(allowed => allowed.trim().replace(/\/$/, '') === cleanOrigin);
+    const isAllowed = allowedOrigins.includes(cleanOrigin) || cleanOrigin.startsWith('http://localhost') || cleanOrigin.startsWith('http://127.0.0.1');
+
     if (isAllowed) {
       callback(null, true);
     } else {
-      callback(new Error(`Not allowed by CORS: ${origin}`));
+      console.warn(`[CORS NOTICE] Origin rejected or unlisted: ${origin}`);
+      // Returning callback(null, false) allows CORS middleware to respond gracefully without Express 403 preflight exception
+      callback(null, false);
     }
   },
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200,
+};
 
-// Limit request sizes to 10MB
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// Limit request sizes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Log every failed response (status >= 400)
+// Log failed responses status >= 400
 app.use((req, res, next) => {
   const originalJson = res.json;
   const originalSend = res.send;
@@ -91,7 +104,7 @@ app.use((req, res, next) => {
 
   res.on('finish', () => {
     if (res.statusCode >= 400) {
-      console.warn(`[FAILED REQUEST] Route: ${req.method} ${req.originalUrl} | Status: ${res.statusCode} | Response:`, JSON.stringify(errorPayload));
+      console.warn(`[FAILED REQUEST] Route: ${req.method} ${req.originalUrl} | Status: ${res.statusCode}`);
     }
   });
   next();
@@ -99,8 +112,8 @@ app.use((req, res, next) => {
 
 // Rate limiter on authentication endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   message: 'Too many login attempts from this IP, please try again after 15 minutes.'
 });
 app.use('/api/auth', authLimiter);
@@ -121,10 +134,12 @@ const checkDbConnection = (req, res, next) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/letters', checkDbConnection, letterRoutes);
-app.use('/api/share', checkDbConnection, shareRoutes);
+app.use('/api/diary', checkDbConnection, diaryRoutes);
+app.use('/api/notes', checkDbConnection, noteRoutes);
+app.use('/api/ai', checkDbConnection, aiRoutes);
 app.use('/api/upload', checkDbConnection, uploadRoutes);
 
-// Enhanced Health check endpoint
+// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -136,9 +151,8 @@ app.get('/api/health', (req, res) => {
 
 // Database connection with retry logic
 const connectWithRetry = (retries = 5, delay = 5000) => {
-  const dbUri = process.env.MONGODB_URI || process.env.MONGO_URI;
   if (!dbUri) {
-    console.error('\n❌ CRITICAL ERROR: MONGODB_URI (or MONGO_URI) is not defined in environment variables.\n');
+    console.error('\n❌ CRITICAL ERROR: MONGODB_URI is not defined in environment variables.\n');
     process.exit(1);
   }
 
@@ -152,7 +166,7 @@ const connectWithRetry = (retries = 5, delay = 5000) => {
     })
     .catch((error) => {
       const maskedError = error.message.replace(dbUri, maskedUri);
-      console.error(`\n⚠️  WARNING: MongoDB connection failed: ${maskedError}`);
+      console.error(`\n⚠️ WARNING: MongoDB connection failed: ${maskedError}`);
       if (retries > 0) {
         console.log(`Retrying connection in ${delay / 1000} seconds... (${retries} retries left)`);
         setTimeout(() => connectWithRetry(retries - 1, delay), delay);
@@ -169,21 +183,11 @@ connectWithRetry();
 app.use((err, req, res, next) => {
   const statusCode = err.status || err.statusCode || 500;
   
-  // Clear and detailed logging of failed request
   console.error(`\n=== UNHANDLED EXCEPTION ===`);
   console.error(`Route: ${req.method} ${req.originalUrl}`);
   console.error(`Status Code: ${statusCode}`);
   console.error(`Original Error: ${err.message || err}`);
-  if (err.stack) {
-    console.error(`Stack Trace:\n${err.stack}`);
-  }
   console.error(`===========================\n`);
-
-  if (err.message && err.message.startsWith('Not allowed by CORS')) {
-    return res.status(403).json({
-      message: err.message
-    });
-  }
 
   const message = process.env.NODE_ENV === 'production' && statusCode === 500
     ? 'An unexpected error occurred. Please try again later.'
@@ -193,7 +197,6 @@ app.use((err, req, res, next) => {
     message,
     error: process.env.NODE_ENV === 'production' ? {} : {
       message: err.message,
-      stack: err.stack
     }
   });
 });
