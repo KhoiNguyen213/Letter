@@ -36,6 +36,11 @@ const LetterSchema = new mongoose.Schema(
     coverImage: {
       type: String,
     },
+    images: [
+      {
+        type: String,
+      },
+    ],
     music: {
       url: { type: String },
       title: { type: String },

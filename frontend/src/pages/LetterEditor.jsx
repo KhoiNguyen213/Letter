@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiFetch, uploadFile, SERVER_BASE } from '../utils/api.js';
+import { apiFetch, uploadFile, uploadFiles, getImageUrl } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
 import VoiceRecorder from '../components/VoiceRecorder.jsx';
 import { useTranslation } from 'react-i18next';
@@ -455,7 +455,7 @@ export default function LetterEditor() {
                 {coverImage ? (
                   <div className="relative rounded-lg overflow-hidden border border-border-warm bg-black/40 p-2 flex items-center justify-center">
                     <img 
-                      src={coverImage.startsWith('http') ? coverImage : `${SERVER_BASE}${coverImage}`} 
+                      src={getImageUrl(coverImage)} 
                       alt="Cover" 
                       className="max-h-48 max-w-full h-auto w-auto object-contain rounded opacity-90"
                     />

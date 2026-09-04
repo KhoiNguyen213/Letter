@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, uploadFile, SERVER_BASE } from '../utils/api.js';
+import { apiFetch, uploadFile, uploadFiles, getImageUrl } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
 import AudioPlayer from '../components/AudioPlayer.jsx';
 import ImageLightbox from '../components/ImageLightbox.jsx';
-import { Calendar as CalendarIcon, Plus, Search, Tag, Trash2, Edit3, Save, Image as ImageIcon, Music, X, ZoomIn } from 'lucide-react';
+import ImageGrid from '../components/ImageGrid.jsx';
+import { Calendar as CalendarIcon, Plus, Search, Tag, Trash2, Edit3, Save, Image as ImageIcon, Music, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const MOODS = [
@@ -32,7 +33,7 @@ export default function DiaryPage() {
   const [formMood, setFormMood] = useState('Peaceful');
   const [formTags, setFormTags] = useState('');
   const [formPrivateNotes, setFormPrivateNotes] = useState('');
-  const [formImage, setFormImage] = useState('');
+  const [formImages, setFormImages] = useState([]);
   const [formAudio, setFormAudio] = useState({ url: '', title: '', duration: 0 });
 
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -40,7 +41,8 @@ export default function DiaryPage() {
   const [saving, setSaving] = useState(false);
 
   // Lightbox State
-  const [lightboxImage, setLightboxImage] = useState('');
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     fetchEntries();
@@ -70,7 +72,7 @@ export default function DiaryPage() {
     setFormMood('Peaceful');
     setFormTags('');
     setFormPrivateNotes('');
-    setFormImage('');
+    setFormImages([]);
     setFormAudio({ url: '', title: '', duration: 0 });
     setIsEditing(true);
   };
@@ -83,24 +85,36 @@ export default function DiaryPage() {
     setFormMood(entry.mood || 'Peaceful');
     setFormTags(entry.tags ? entry.tags.join(', ') : '');
     setFormPrivateNotes(entry.privateNotes || '');
-    setFormImage(entry.image || '');
+    
+    // Support images array or fallback to legacy image
+    const imgs = entry.images && entry.images.length > 0 ? entry.images : (entry.image ? [entry.image] : []);
+    setFormImages(imgs);
     setFormAudio(entry.audio || { url: '', title: '', duration: 0 });
     setIsEditing(true);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleImagesUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files || files.length === 0) return;
 
     setUploadingImage(true);
     try {
-      const res = await uploadFile(file);
-      setFormImage(res.url);
+      if (files.length === 1) {
+        const res = await uploadFile(files[0]);
+        setFormImages((prev) => [...prev, res.url]);
+      } else {
+        const res = await uploadFiles(files);
+        setFormImages((prev) => [...prev, ...res.urls]);
+      }
     } catch (err) {
       alert('Lỗi tải ảnh lên: ' + err.message);
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const removeFormImage = (index) => {
+    setFormImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleAudioUpload = async (e) => {
@@ -139,7 +153,8 @@ export default function DiaryPage() {
       mood: formMood,
       tags: tagsArray,
       privateNotes: formPrivateNotes,
-      image: formImage,
+      image: formImages[0] || '',
+      images: formImages,
       audio: formAudio,
     };
 
@@ -185,9 +200,9 @@ export default function DiaryPage() {
     }).format(new Date(dateString));
   };
 
-  const openFullImage = (srcUrl) => {
-    const fullUrl = srcUrl.startsWith('http') ? srcUrl : `${SERVER_BASE}${srcUrl}`;
-    setLightboxImage(fullUrl);
+  const openLightbox = (imgs, index = 0) => {
+    setLightboxImages(imgs);
+    setLightboxIndex(index);
   };
 
   return (
@@ -200,7 +215,7 @@ export default function DiaryPage() {
             <span>Nhật Ký Tĩnh Lặng</span>
           </h1>
           <p className="font-serif italic text-xs text-zinc-500">
-            Mỗi ngày một góc nhìn nhẹ nhàng kèm hình ảnh (bấm để phóng to) & âm thanh kỷ niệm.
+            Mỗi ngày một góc nhìn nhẹ nhàng kèm nhiều hình ảnh kỷ niệm (bấm để phóng to/xoay) & âm thanh.
           </p>
         </div>
 
@@ -287,46 +302,60 @@ export default function DiaryPage() {
             </div>
           </div>
 
-          {/* Media Attachments Section (Image & Audio) */}
+          {/* Media Attachments Section (Images & Audio) */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-border-warm/40 pt-4">
-            {/* Image attachment */}
+            {/* Multiple Images Attachment */}
             <div className="flex flex-col gap-2">
-              <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center gap-1">
-                <ImageIcon size={12} className="text-gold-accent" />
-                Hình ảnh đính kèm:
+              <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center justify-between">
+                <span className="flex items-center gap-1">
+                  <ImageIcon size={12} className="text-gold-accent" />
+                  Hình ảnh kỷ niệm ({formImages.length}):
+                </span>
+                {formImages.length > 0 && (
+                  <span className="text-[9px] text-zinc-500">Có thể chọn nhiều ảnh</span>
+                )}
               </label>
-              {formImage ? (
-                <div className="relative rounded-xl overflow-hidden bg-black/40 border border-border-warm flex items-center justify-center p-2 group">
-                  <img
-                    src={formImage.startsWith('http') ? formImage : `${SERVER_BASE}${formImage}`}
-                    alt="Uploaded"
-                    className="max-h-56 max-w-full h-auto w-auto object-contain rounded-lg cursor-pointer"
-                    onClick={() => openFullImage(formImage)}
-                  />
-                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-serene flex items-center justify-center pointer-events-none">
-                    <span className="text-xs text-white bg-black/60 px-2 py-1 rounded flex items-center gap-1">
-                      <ZoomIn size={12} /> Xem phóng to
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setFormImage('')}
-                    className="absolute top-2 right-2 bg-black/80 hover:bg-black text-red-400 p-1.5 rounded-full text-xs transition-serene"
-                  >
-                    <X size={14} />
-                  </button>
+
+              {/* Uploaded Images Preview List */}
+              {formImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-2 mb-1">
+                  {formImages.map((imgUrl, idx) => (
+                    <div key={idx} className="relative rounded-lg overflow-hidden border border-border-warm h-24 bg-black/40 group">
+                      <img
+                        src={getImageUrl(imgUrl)}
+                        alt={`Upload ${idx + 1}`}
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => openLightbox(formImages, idx)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFormImage(idx)}
+                        className="absolute top-1 right-1 bg-black/80 hover:bg-black text-red-400 p-1 rounded-full text-xs transition-serene"
+                        title="Xóa ảnh này"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <label className="border border-dashed border-border-warm hover:border-gold-text/30 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-serene bg-bg-dark">
-                  <span className="text-xs text-zinc-400 font-sans">
-                    {uploadingImage ? 'Đang tải ảnh...' : '+ Thêm hình ảnh kỷ niệm'}
-                  </span>
-                  <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                </label>
               )}
+
+              {/* Upload Button */}
+              <label className="border border-dashed border-border-warm hover:border-gold-text/30 rounded-xl p-3 flex flex-col items-center justify-center cursor-pointer transition-serene bg-bg-dark">
+                <span className="text-xs text-zinc-400 font-sans">
+                  {uploadingImage ? 'Đang tải tệp ảnh lên...' : '+ Chọn hình ảnh (Cho phép chọn nhiều ảnh)'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImagesUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
 
-            {/* Audio attachment */}
+            {/* Audio Attachment */}
             <div className="flex flex-col gap-2">
               <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center gap-1">
                 <Music size={12} className="text-gold-accent" />
@@ -454,6 +483,7 @@ export default function DiaryPage() {
         <div className="flex flex-col gap-6">
           {entries.map((entry) => {
             const moodObj = MOODS.find(m => m.id === entry.mood) || MOODS[0];
+            const entryImages = entry.images && entry.images.length > 0 ? entry.images : (entry.image ? [entry.image] : []);
 
             return (
               <div
@@ -489,25 +519,12 @@ export default function DiaryPage() {
                   </div>
                 </div>
 
-                {/* Attached Image if exists - Un-cropped full ratio display with click-to-zoom */}
-                {entry.image && (
-                  <div
-                    className="relative rounded-xl overflow-hidden bg-black/40 border border-border-warm max-h-[380px] w-full flex items-center justify-center p-1.5 cursor-pointer group"
-                    onClick={() => openFullImage(entry.image)}
-                    title="Bấm để xem ảnh đầy đủ"
-                  >
-                    <img
-                      src={entry.image.startsWith('http') ? entry.image : `${SERVER_BASE}${entry.image}`}
-                      alt="Diary entry"
-                      className="max-h-[360px] max-w-full h-auto w-auto object-contain rounded-lg transition-serene group-hover:scale-[1.01]"
-                    />
-                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-serene flex items-center justify-center pointer-events-none">
-                      <span className="text-xs text-white bg-black/70 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg">
-                        <ZoomIn size={14} /> Phóng to ảnh đầy đủ
-                      </span>
-                    </div>
-                  </div>
-                )}
+                {/* Attached Image Grid with Lightbox Zoom Trigger */}
+                <ImageGrid
+                  images={entry.images}
+                  legacyImage={entry.image}
+                  onImageClick={(idx) => openLightbox(entryImages, idx)}
+                />
 
                 {/* Title & Content */}
                 {entry.title && (
@@ -552,9 +569,10 @@ export default function DiaryPage() {
 
       {/* Lightbox Modal */}
       <ImageLightbox
-        isOpen={!!lightboxImage}
-        src={lightboxImage}
-        onClose={() => setLightboxImage('')}
+        isOpen={lightboxImages.length > 0}
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxImages([])}
       />
     </OwnerLayout>
   );

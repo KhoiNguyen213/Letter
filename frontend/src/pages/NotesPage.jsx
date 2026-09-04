@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { apiFetch, uploadFile, SERVER_BASE } from '../utils/api.js';
+import { apiFetch, uploadFile, uploadFiles, getImageUrl } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
 import AudioPlayer from '../components/AudioPlayer.jsx';
 import ImageLightbox from '../components/ImageLightbox.jsx';
-import { StickyNote, Plus, Search, Tag, Trash2, Save, Image as ImageIcon, Music, X, Pin, ZoomIn } from 'lucide-react';
+import ImageGrid from '../components/ImageGrid.jsx';
+import { StickyNote, Plus, Search, Tag, Trash2, Save, Image as ImageIcon, Music, X, Pin } from 'lucide-react';
 
 const CATEGORIES = [
   { id: 'Personal', label: 'Cá nhân' },
@@ -29,7 +30,7 @@ export default function NotesPage() {
   const [formCategory, setFormCategory] = useState('Personal');
   const [formTags, setFormTags] = useState('');
   const [formIsPinned, setFormIsPinned] = useState(false);
-  const [formImage, setFormImage] = useState('');
+  const [formImages, setFormImages] = useState([]);
   const [formAudio, setFormAudio] = useState({ url: '', title: '', duration: 0 });
 
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -37,7 +38,8 @@ export default function NotesPage() {
   const [saving, setSaving] = useState(false);
 
   // Lightbox State
-  const [lightboxImage, setLightboxImage] = useState('');
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     fetchNotes();
@@ -66,7 +68,7 @@ export default function NotesPage() {
     setFormCategory('Personal');
     setFormTags('');
     setFormIsPinned(false);
-    setFormImage('');
+    setFormImages([]);
     setFormAudio({ url: '', title: '', duration: 0 });
     setIsModalOpen(true);
   };
@@ -78,24 +80,35 @@ export default function NotesPage() {
     setFormCategory(note.category || 'Personal');
     setFormTags(note.tags ? note.tags.join(', ') : '');
     setFormIsPinned(note.isPinned || false);
-    setFormImage(note.image || '');
+
+    const imgs = note.images && note.images.length > 0 ? note.images : (note.image ? [note.image] : []);
+    setFormImages(imgs);
     setFormAudio(note.audio || { url: '', title: '', duration: 0 });
     setIsModalOpen(true);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleImagesUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files || files.length === 0) return;
 
     setUploadingImage(true);
     try {
-      const res = await uploadFile(file);
-      setFormImage(res.url);
+      if (files.length === 1) {
+        const res = await uploadFile(files[0]);
+        setFormImages((prev) => [...prev, res.url]);
+      } else {
+        const res = await uploadFiles(files);
+        setFormImages((prev) => [...prev, ...res.urls]);
+      }
     } catch (err) {
       alert('Lỗi tải ảnh lên: ' + err.message);
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const removeFormImage = (index) => {
+    setFormImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleAudioUpload = async (e) => {
@@ -133,7 +146,8 @@ export default function NotesPage() {
       category: formCategory,
       tags: tagsArray,
       isPinned: formIsPinned,
-      image: formImage,
+      image: formImages[0] || '',
+      images: formImages,
       audio: formAudio,
     };
 
@@ -182,10 +196,10 @@ export default function NotesPage() {
     }
   };
 
-  const openFullImage = (srcUrl, e) => {
+  const openLightbox = (imgs, index = 0, e) => {
     if (e) e.stopPropagation();
-    const fullUrl = srcUrl.startsWith('http') ? srcUrl : `${SERVER_BASE}${srcUrl}`;
-    setLightboxImage(fullUrl);
+    setLightboxImages(imgs);
+    setLightboxIndex(index);
   };
 
   return (
@@ -198,7 +212,7 @@ export default function NotesPage() {
             <span>Ghi Chú & Góc Lưu Trữ</span>
           </h1>
           <p className="font-serif italic text-xs text-zinc-500">
-            Lưu giữ mọi ý tưởng, kế hoạch, danh sách kèm hình ảnh (bấm để xem đầy đủ) & ghi âm.
+            Lưu giữ mọi ý tưởng, kế hoạch, danh sách kèm hình ảnh (bấm để xem đầy đủ/xoay) & ghi âm.
           </p>
         </div>
 
@@ -267,82 +281,74 @@ export default function NotesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {notes.map((note) => (
-            <div
-              key={note._id}
-              onClick={() => handleEditNote(note)}
-              className={`paper-dark rounded-2xl p-5 flex flex-col justify-between cursor-pointer relative group transition-serene hover:-translate-y-0.5 border ${
-                note.isPinned ? 'border-gold-text/40 shadow-md bg-bg-dark/90' : 'border-gold-text/10 hover:border-gold-text/25'
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] uppercase tracking-wider text-gold-accent font-sans bg-gold-text/10 px-2 py-0.5 rounded border border-gold-text/20">
-                    {CATEGORIES.find(c => c.id === note.category)?.label || note.category}
-                  </span>
+          {notes.map((note) => {
+            const noteImages = note.images && note.images.length > 0 ? note.images : (note.image ? [note.image] : []);
+            return (
+              <div
+                key={note._id}
+                onClick={() => handleEditNote(note)}
+                className={`paper-dark rounded-2xl p-5 flex flex-col justify-between cursor-pointer relative group transition-serene hover:-translate-y-0.5 border ${
+                  note.isPinned ? 'border-gold-text/40 shadow-md bg-bg-dark/90' : 'border-gold-text/10 hover:border-gold-text/25'
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] uppercase tracking-wider text-gold-accent font-sans bg-gold-text/10 px-2 py-0.5 rounded border border-gold-text/20">
+                      {CATEGORIES.find(c => c.id === note.category)?.label || note.category}
+                    </span>
 
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={(e) => togglePin(note, e)}
-                      className={`p-1 transition-serene ${note.isPinned ? 'text-gold-accent' : 'text-zinc-600 hover:text-zinc-400'}`}
-                      title={note.isPinned ? 'Bỏ ghim' : 'Ghim lên đầu'}
-                    >
-                      <Pin size={13} className={note.isPinned ? 'fill-gold-accent' : ''} />
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteNote(note._id, e)}
-                      className="text-zinc-600 hover:text-red-400 p-1 transition-serene"
-                      title="Xóa ghi chú"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Attached Image Thumbnail - Un-cropped full ratio display with click zoom */}
-                {note.image && (
-                  <div
-                    className="relative rounded-lg overflow-hidden max-h-48 w-full mb-3 border border-border-warm bg-black/40 flex items-center justify-center p-1 cursor-pointer group/img"
-                    onClick={(e) => openFullImage(note.image, e)}
-                    title="Bấm để xem ảnh đầy đủ"
-                  >
-                    <img
-                      src={note.image.startsWith('http') ? note.image : `${SERVER_BASE}${note.image}`}
-                      alt="Note attached"
-                      className="max-h-44 max-w-full h-auto w-auto object-contain rounded transition-serene group-hover/img:scale-[1.02]"
-                    />
-                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-serene flex items-center justify-center pointer-events-none">
-                      <span className="text-[10px] text-white bg-black/70 px-2 py-1 rounded flex items-center gap-1">
-                        <ZoomIn size={11} /> Phóng to
-                      </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => togglePin(note, e)}
+                        className={`p-1 transition-serene ${note.isPinned ? 'text-gold-accent' : 'text-zinc-600 hover:text-zinc-400'}`}
+                        title={note.isPinned ? 'Bỏ ghim' : 'Ghim lên đầu'}
+                      >
+                        <Pin size={13} className={note.isPinned ? 'fill-gold-accent' : ''} />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteNote(note._id, e)}
+                        className="text-zinc-600 hover:text-red-400 p-1 transition-serene"
+                        title="Xóa ghi chú"
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
-                )}
 
-                <h3 className="font-serif text-base text-zinc-100 font-semibold mb-2 group-hover:text-gold-accent transition-serene">
-                  {note.title}
-                </h3>
+                  {/* Attached Images Grid */}
+                  <div className="mb-3">
+                    <ImageGrid
+                      images={note.images}
+                      legacyImage={note.image}
+                      onImageClick={(idx) => openLightbox(noteImages, idx)}
+                    />
+                  </div>
 
-                <p className="text-xs text-zinc-300 font-serif whitespace-pre-wrap line-clamp-6 leading-relaxed mb-3">
-                  {note.content}
-                </p>
+                  <h3 className="font-serif text-base text-zinc-100 font-semibold mb-2 group-hover:text-gold-accent transition-serene">
+                    {note.title}
+                  </h3>
 
-                {/* Attached Audio Player */}
-                {note.audio && note.audio.url && (
-                  <div className="my-2 pt-2 border-t border-border-warm/30" onClick={(e) => e.stopPropagation()}>
-                    <AudioPlayer url={note.audio.url} title={note.audio.title || 'Âm thanh ghi chú'} />
+                  <p className="text-xs text-zinc-300 font-serif whitespace-pre-wrap line-clamp-6 leading-relaxed mb-3">
+                    {note.content}
+                  </p>
+
+                  {/* Attached Audio Player */}
+                  {note.audio && note.audio.url && (
+                    <div className="my-2 pt-2 border-t border-border-warm/30" onClick={(e) => e.stopPropagation()}>
+                      <AudioPlayer url={note.audio.url} title={note.audio.title || 'Âm thanh ghi chú'} />
+                    </div>
+                  )}
+                </div>
+
+                {note.tags && note.tags.length > 0 && (
+                  <div className="flex items-center gap-1 border-t border-border-warm/40 pt-2 mt-auto text-[10px] text-zinc-500 font-sans">
+                    <Tag size={10} className="text-zinc-600" />
+                    <span className="truncate">{note.tags.join(', ')}</span>
                   </div>
                 )}
               </div>
-
-              {note.tags && note.tags.length > 0 && (
-                <div className="flex items-center gap-1 border-t border-border-warm/40 pt-2 mt-auto text-[10px] text-zinc-500 font-sans">
-                  <Tag size={10} className="text-zinc-600" />
-                  <span className="truncate">{note.tags.join(', ')}</span>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -399,31 +405,42 @@ export default function NotesPage() {
                 />
               </div>
 
-              {/* Media Upload (Image & Audio) */}
+              {/* Media Upload (Images & Audio) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 border-t border-border-warm/40 pt-3">
-                {/* Image upload */}
+                {/* Images upload */}
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] uppercase tracking-widest text-zinc-500 font-sans flex items-center gap-1">
-                    <ImageIcon size={11} className="text-gold-accent" /> Hình ảnh:
+                    <ImageIcon size={11} className="text-gold-accent" /> Hình ảnh ({formImages.length}):
                   </label>
-                  {formImage ? (
-                    <div className="relative rounded-lg overflow-hidden bg-black/40 border border-border-warm flex items-center justify-center p-1 group">
-                      <img
-                        src={formImage.startsWith('http') ? formImage : `${SERVER_BASE}${formImage}`}
-                        alt="Note"
-                        className="max-h-36 max-w-full h-auto w-auto object-contain rounded cursor-pointer"
-                        onClick={(e) => openFullImage(formImage, e)}
-                      />
-                      <button type="button" onClick={() => setFormImage('')} className="absolute top-1 right-1 bg-black/80 text-red-400 p-1 rounded-full">
-                        <X size={12} />
-                      </button>
+
+                  {formImages.length > 0 && (
+                    <div className="grid grid-cols-3 gap-1.5 mb-1">
+                      {formImages.map((imgUrl, idx) => (
+                        <div key={idx} className="relative rounded border border-border-warm h-16 bg-black/40 overflow-hidden group">
+                          <img
+                            src={getImageUrl(imgUrl)}
+                            alt="Note thumb"
+                            className="w-full h-full object-cover cursor-pointer"
+                            onClick={() => openLightbox(formImages, idx)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeFormImage(idx)}
+                            className="absolute top-0.5 right-0.5 bg-black/80 text-red-400 p-0.5 rounded-full"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <label className="border border-dashed border-border-warm rounded-xl p-3 text-center cursor-pointer bg-bg-dark">
-                      <span className="text-[11px] text-zinc-400 font-sans">{uploadingImage ? 'Đang tải...' : '+ Thêm ảnh'}</span>
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    </label>
                   )}
+
+                  <label className="border border-dashed border-border-warm rounded-xl p-2.5 text-center cursor-pointer bg-bg-dark hover:border-gold-text/30 transition-serene">
+                    <span className="text-[11px] text-zinc-400 font-sans">
+                      {uploadingImage ? 'Đang tải...' : '+ Thêm ảnh (chọn nhiều)'}
+                    </span>
+                    <input type="file" accept="image/*" multiple onChange={handleImagesUpload} className="hidden" />
+                  </label>
                 </div>
 
                 {/* Audio upload */}
@@ -497,9 +514,10 @@ export default function NotesPage() {
 
       {/* Lightbox Modal */}
       <ImageLightbox
-        isOpen={!!lightboxImage}
-        src={lightboxImage}
-        onClose={() => setLightboxImage('')}
+        isOpen={lightboxImages.length > 0}
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxImages([])}
       />
     </OwnerLayout>
   );

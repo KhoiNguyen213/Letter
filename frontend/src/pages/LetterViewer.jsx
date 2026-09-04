@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { apiFetch, SERVER_BASE } from '../utils/api.js';
+import { apiFetch, getImageUrl } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
 import ReactMarkdown from 'react-markdown';
 import AudioPlayer from '../components/AudioPlayer.jsx';
 import { useTranslation } from 'react-i18next';
 import ImageLightbox from '../components/ImageLightbox.jsx';
+import ImageGrid from '../components/ImageGrid.jsx';
+import { Edit2, Share2, Trash2, Eye, EyeOff, Heart, Check, Copy, AlertCircle, RotateCcw } from 'lucide-react';
 
 function SharePasswordModal({ isOpen, onClose, onSubmit }) {
   const { t } = useTranslation();
@@ -145,7 +147,8 @@ export default function LetterViewer() {
   const [copiedPass, setCopiedPass] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
-  const [lightboxImage, setLightboxImage] = useState('');
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -257,6 +260,11 @@ export default function LetterViewer() {
     return `${new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(kb)} KB`;
   };
 
+  const openLightbox = (imgs, index = 0) => {
+    setLightboxImages(imgs);
+    setLightboxIndex(index);
+  };
+
   if (loading) {
     return (
       <OwnerLayout>
@@ -319,6 +327,7 @@ export default function LetterViewer() {
   }
 
   const shareUrl = `${window.location.origin}/letter/${letter.shareSlug}`;
+  const letterImages = letter.images && letter.images.length > 0 ? letter.images : (letter.coverImage ? [letter.coverImage] : []);
 
   return (
     <OwnerLayout>
@@ -405,7 +414,7 @@ export default function LetterViewer() {
           </div>
         </div>
 
-        {/* Sharing Details (Alert container showing Slug and One-time Passcode) */}
+        {/* Sharing Details */}
         {['Shared', 'Sealed'].includes(letter.status) && (
           <div className="paper-dark p-6 rounded-2xl border border-gold-text/20 flex flex-col gap-4 bg-zinc-950/20">
             <div className="flex items-start gap-2.5">
@@ -479,17 +488,13 @@ export default function LetterViewer() {
             </div>
 
             <div>
-              {/* Cover Image */}
-              {letter.coverImage && (
-                <div 
-                  className="rounded-xl overflow-hidden max-h-[450px] mb-8 border border-gold-text/10 bg-black/40 flex items-center justify-center p-2 cursor-pointer group"
-                  onClick={() => setLightboxImage(letter.coverImage.startsWith('http') ? letter.coverImage : `${SERVER_BASE}${letter.coverImage}`)}
-                  title="Bấm để xem ảnh đầy đủ"
-                >
-                  <img 
-                    src={letter.coverImage.startsWith('http') ? letter.coverImage : `${SERVER_BASE}${letter.coverImage}`} 
-                    alt="Cover" 
-                    className="max-h-[430px] max-w-full h-auto w-auto object-contain rounded-lg transition-serene group-hover:scale-[1.01]"
+              {/* Cover / Multi Images Grid */}
+              {(letter.coverImage || (letter.images && letter.images.length > 0)) && (
+                <div className="mb-8">
+                  <ImageGrid
+                    images={letter.images}
+                    legacyImage={letter.coverImage}
+                    onImageClick={(idx) => openLightbox(letterImages, idx)}
                   />
                 </div>
               )}
@@ -582,9 +587,10 @@ export default function LetterViewer() {
       />
 
       <ImageLightbox
-        isOpen={!!lightboxImage}
-        src={lightboxImage}
-        onClose={() => setLightboxImage('')}
+        isOpen={lightboxImages.length > 0}
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxImages([])}
       />
     </OwnerLayout>
   );

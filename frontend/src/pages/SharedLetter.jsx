@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { apiFetch, SERVER_BASE } from '../utils/api.js';
+import { apiFetch, getImageUrl } from '../utils/api.js';
 import ReactMarkdown from 'react-markdown';
 import AudioPlayer from '../components/AudioPlayer.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
+import ImageLightbox from '../components/ImageLightbox.jsx';
+import ImageGrid from '../components/ImageGrid.jsx';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, EyeOff, Send, CheckCircle, Mail, Key } from 'lucide-react';
@@ -53,6 +55,10 @@ export default function SharedLetter() {
   // Unlocked letter content
   const [letter, setLetter] = useState(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
+
+  // Lightbox State
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   // Reply states
   const [replyText, setReplyText] = useState('');
@@ -149,6 +155,11 @@ export default function SharedLetter() {
     }).format(new Date(dateString));
   };
 
+  const openLightbox = (imgs, index = 0) => {
+    setLightboxImages(imgs);
+    setLightboxIndex(index);
+  };
+
   // Custom components for Markdown rendering (enabling fade-in animations on components)
   const markdownComponents = {
     p: ({ children }) => (
@@ -236,6 +247,8 @@ export default function SharedLetter() {
     );
   }
 
+  const letterImages = letter && (letter.images && letter.images.length > 0 ? letter.images : (letter.coverImage ? [letter.coverImage] : []));
+
   return (
     <div className="min-h-screen bg-bg-dark flex flex-col justify-center items-center px-4 relative py-12">
       {/* Floating Language Switcher in Reader Page */}
@@ -322,13 +335,13 @@ export default function SharedLetter() {
               </div>
 
               <div>
-                {/* Cover Image */}
-                {letter.coverImage && (
-                  <div className="rounded-xl overflow-hidden max-h-[300px] mb-8 border border-gold-text/10">
-                    <img 
-                      src={letter.coverImage.startsWith('http') ? letter.coverImage : `${SERVER_BASE}${letter.coverImage}`} 
-                      alt="Cover" 
-                      className="w-full h-full object-cover opacity-80"
+                {/* Cover / Images Grid */}
+                {(letter.coverImage || (letter.images && letter.images.length > 0)) && (
+                  <div className="mb-8">
+                    <ImageGrid
+                      images={letter.images}
+                      legacyImage={letter.coverImage}
+                      onImageClick={(idx) => openLightbox(letterImages, idx)}
                     />
                   </div>
                 )}
@@ -444,6 +457,13 @@ export default function SharedLetter() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ImageLightbox
+        isOpen={lightboxImages.length > 0}
+        images={lightboxImages}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxImages([])}
+      />
     </div>
   );
 }

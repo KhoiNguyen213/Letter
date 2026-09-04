@@ -60,7 +60,7 @@ router.get('/:id', requireOwner, async (req, res) => {
 // 3. Create diary entry
 router.post('/', requireOwner, async (req, res) => {
   try {
-    const { date, title, content, mood, tags, privateNotes, image, audio } = req.body;
+    const { date, title, content, mood, tags, privateNotes, image, images, audio } = req.body;
     const entry = new Diary({
       date: date || new Date(),
       title: title || '',
@@ -68,7 +68,8 @@ router.post('/', requireOwner, async (req, res) => {
       mood: mood || 'Peaceful',
       tags: tags || [],
       privateNotes: privateNotes || '',
-      image: image || '',
+      image: image || (images && images[0]) || '',
+      images: images || (image ? [image] : []),
       audio: audio || { url: '', title: '', duration: 0 },
     });
 

@@ -28,9 +28,14 @@ const NoteSchema = new mongoose.Schema(
       default: false,
     },
     image: {
-      type: String, // Path/URL to attached photo
+      type: String, // Path/URL to attached photo (legacy single image)
       default: '',
     },
+    images: [
+      {
+        type: String, // Array of paths/URLs to attached photos
+      },
+    ],
     audio: {
       url: { type: String, default: '' },
       title: { type: String, default: '' },

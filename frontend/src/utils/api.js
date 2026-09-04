@@ -89,3 +89,25 @@ export const uploadFile = async (file, title = '', artist = '', duration = 0) =>
     body: formData,
   });
 };
+
+export const uploadFiles = async (files) => {
+  const formData = new FormData();
+  Array.from(files).forEach((file) => {
+    formData.append('files', file);
+  });
+
+  return apiFetch('/upload/multiple', {
+    method: 'POST',
+    body: formData,
+  });
+};
+
+export const getImageUrl = (path) => {
+  if (!path) return '';
+  if (typeof path !== 'string') return '';
+  if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('data:') || path.startsWith('blob:')) {
+    return path;
+  }
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${SERVER_BASE}${cleanPath}`;
+};
