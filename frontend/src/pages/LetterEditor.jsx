@@ -453,16 +453,16 @@ export default function LetterEditor() {
                 </span>
                 
                 {coverImage ? (
-                  <div className="relative rounded-lg overflow-hidden h-24 border border-border-warm">
+                  <div className="relative rounded-lg overflow-hidden border border-border-warm bg-black/40 p-2 flex items-center justify-center">
                     <img 
                       src={coverImage.startsWith('http') ? coverImage : `${SERVER_BASE}${coverImage}`} 
                       alt="Cover" 
-                      className="w-full h-full object-cover opacity-80"
+                      className="max-h-48 max-w-full h-auto w-auto object-contain rounded opacity-90"
                     />
                     <button
                       type="button"
                       onClick={() => removeAttachment('cover')}
-                      className="absolute top-2 right-2 bg-black/60 hover:bg-black text-red-400 hover:text-red-300 text-[10px] uppercase px-2 py-1 rounded tracking-wider cursor-pointer"
+                      className="absolute top-2 right-2 bg-black/80 hover:bg-black text-red-400 hover:text-red-300 text-[10px] uppercase px-2 py-1 rounded tracking-wider cursor-pointer"
                       aria-label={`${t('editor:remove')} ${t('editor:cover_image_title')}`}
                     >
                       {t('editor:remove')}

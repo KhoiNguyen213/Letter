@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch, uploadFile, SERVER_BASE } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
 import AudioPlayer from '../components/AudioPlayer.jsx';
-import { StickyNote, Plus, Search, Tag, Trash2, Edit3, Save, Image as ImageIcon, Music, X, Pin } from 'lucide-react';
+import ImageLightbox from '../components/ImageLightbox.jsx';
+import { StickyNote, Plus, Search, Tag, Trash2, Save, Image as ImageIcon, Music, X, Pin, ZoomIn } from 'lucide-react';
 
 const CATEGORIES = [
   { id: 'Personal', label: 'Cá nhân' },
@@ -34,6 +35,9 @@ export default function NotesPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Lightbox State
+  const [lightboxImage, setLightboxImage] = useState('');
 
   useEffect(() => {
     fetchNotes();
@@ -178,6 +182,12 @@ export default function NotesPage() {
     }
   };
 
+  const openFullImage = (srcUrl, e) => {
+    if (e) e.stopPropagation();
+    const fullUrl = srcUrl.startsWith('http') ? srcUrl : `${SERVER_BASE}${srcUrl}`;
+    setLightboxImage(fullUrl);
+  };
+
   return (
     <OwnerLayout>
       {/* Header */}
@@ -188,7 +198,7 @@ export default function NotesPage() {
             <span>Ghi Chú & Góc Lưu Trữ</span>
           </h1>
           <p className="font-serif italic text-xs text-zinc-500">
-            Lưu giữ mọi ý tưởng, kế hoạch, danh sách kèm hình ảnh & ghi âm.
+            Lưu giữ mọi ý tưởng, kế hoạch, danh sách kèm hình ảnh (bấm để xem đầy đủ) & ghi âm.
           </p>
         </div>
 
@@ -289,14 +299,23 @@ export default function NotesPage() {
                   </div>
                 </div>
 
-                {/* Attached Image Thumbnail */}
+                {/* Attached Image Thumbnail - Un-cropped full ratio display with click zoom */}
                 {note.image && (
-                  <div className="rounded-lg overflow-hidden h-32 w-full mb-3 border border-border-warm">
+                  <div
+                    className="relative rounded-lg overflow-hidden max-h-48 w-full mb-3 border border-border-warm bg-black/40 flex items-center justify-center p-1 cursor-pointer group/img"
+                    onClick={(e) => openFullImage(note.image, e)}
+                    title="Bấm để xem ảnh đầy đủ"
+                  >
                     <img
                       src={note.image.startsWith('http') ? note.image : `${SERVER_BASE}${note.image}`}
                       alt="Note attached"
-                      className="w-full h-full object-cover"
+                      className="max-h-44 max-w-full h-auto w-auto object-contain rounded transition-serene group-hover/img:scale-[1.02]"
                     />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover/img:opacity-100 transition-serene flex items-center justify-center pointer-events-none">
+                      <span className="text-[10px] text-white bg-black/70 px-2 py-1 rounded flex items-center gap-1">
+                        <ZoomIn size={11} /> Phóng to
+                      </span>
+                    </div>
                   </div>
                 )}
 
@@ -388,9 +407,14 @@ export default function NotesPage() {
                     <ImageIcon size={11} className="text-gold-accent" /> Hình ảnh:
                   </label>
                   {formImage ? (
-                    <div className="relative rounded-lg overflow-hidden h-24 border border-border-warm">
-                      <img src={formImage.startsWith('http') ? formImage : `${SERVER_BASE}${formImage}`} alt="Note" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setFormImage('')} className="absolute top-1 right-1 bg-black/70 text-red-400 p-0.5 rounded-full">
+                    <div className="relative rounded-lg overflow-hidden bg-black/40 border border-border-warm flex items-center justify-center p-1 group">
+                      <img
+                        src={formImage.startsWith('http') ? formImage : `${SERVER_BASE}${formImage}`}
+                        alt="Note"
+                        className="max-h-36 max-w-full h-auto w-auto object-contain rounded cursor-pointer"
+                        onClick={(e) => openFullImage(formImage, e)}
+                      />
+                      <button type="button" onClick={() => setFormImage('')} className="absolute top-1 right-1 bg-black/80 text-red-400 p-1 rounded-full">
                         <X size={12} />
                       </button>
                     </div>
@@ -470,6 +494,13 @@ export default function NotesPage() {
           </div>
         </div>
       )}
+
+      {/* Lightbox Modal */}
+      <ImageLightbox
+        isOpen={!!lightboxImage}
+        src={lightboxImage}
+        onClose={() => setLightboxImage('')}
+      />
     </OwnerLayout>
   );
 }

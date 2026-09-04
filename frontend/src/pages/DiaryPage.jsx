@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch, uploadFile, SERVER_BASE } from '../utils/api.js';
 import OwnerLayout from '../components/OwnerLayout.jsx';
 import AudioPlayer from '../components/AudioPlayer.jsx';
-import { Calendar as CalendarIcon, Plus, Search, Tag, Trash2, Edit3, Save, Image as ImageIcon, Music, X } from 'lucide-react';
+import ImageLightbox from '../components/ImageLightbox.jsx';
+import { Calendar as CalendarIcon, Plus, Search, Tag, Trash2, Edit3, Save, Image as ImageIcon, Music, X, ZoomIn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const MOODS = [
@@ -22,7 +23,7 @@ export default function DiaryPage() {
   const [search, setSearch] = useState('');
   const [selectedMoodFilter, setSelectedMoodFilter] = useState('');
 
-  // Form State for creating/editing diary entry
+  // Form State
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0]);
@@ -37,6 +38,9 @@ export default function DiaryPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Lightbox State
+  const [lightboxImage, setLightboxImage] = useState('');
 
   useEffect(() => {
     fetchEntries();
@@ -181,6 +185,11 @@ export default function DiaryPage() {
     }).format(new Date(dateString));
   };
 
+  const openFullImage = (srcUrl) => {
+    const fullUrl = srcUrl.startsWith('http') ? srcUrl : `${SERVER_BASE}${srcUrl}`;
+    setLightboxImage(fullUrl);
+  };
+
   return (
     <OwnerLayout>
       {/* Header */}
@@ -191,7 +200,7 @@ export default function DiaryPage() {
             <span>Nhật Ký Tĩnh Lặng</span>
           </h1>
           <p className="font-serif italic text-xs text-zinc-500">
-            Mỗi ngày một góc nhìn nhẹ nhàng kèm hình ảnh & âm thanh kỷ niệm.
+            Mỗi ngày một góc nhìn nhẹ nhàng kèm hình ảnh (bấm để phóng to) & âm thanh kỷ niệm.
           </p>
         </div>
 
@@ -287,16 +296,22 @@ export default function DiaryPage() {
                 Hình ảnh đính kèm:
               </label>
               {formImage ? (
-                <div className="relative rounded-xl overflow-hidden h-32 border border-border-warm">
+                <div className="relative rounded-xl overflow-hidden bg-black/40 border border-border-warm flex items-center justify-center p-2 group">
                   <img
                     src={formImage.startsWith('http') ? formImage : `${SERVER_BASE}${formImage}`}
                     alt="Uploaded"
-                    className="w-full h-full object-cover"
+                    className="max-h-56 max-w-full h-auto w-auto object-contain rounded-lg cursor-pointer"
+                    onClick={() => openFullImage(formImage)}
                   />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-serene flex items-center justify-center pointer-events-none">
+                    <span className="text-xs text-white bg-black/60 px-2 py-1 rounded flex items-center gap-1">
+                      <ZoomIn size={12} /> Xem phóng to
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setFormImage('')}
-                    className="absolute top-2 right-2 bg-black/70 hover:bg-black text-red-400 p-1 rounded-full text-xs"
+                    className="absolute top-2 right-2 bg-black/80 hover:bg-black text-red-400 p-1.5 rounded-full text-xs transition-serene"
                   >
                     <X size={14} />
                   </button>
@@ -474,14 +489,23 @@ export default function DiaryPage() {
                   </div>
                 </div>
 
-                {/* Attached Image if exists */}
+                {/* Attached Image if exists - Un-cropped full ratio display with click-to-zoom */}
                 {entry.image && (
-                  <div className="rounded-xl overflow-hidden max-h-64 w-full border border-border-warm">
+                  <div
+                    className="relative rounded-xl overflow-hidden bg-black/40 border border-border-warm max-h-[380px] w-full flex items-center justify-center p-1.5 cursor-pointer group"
+                    onClick={() => openFullImage(entry.image)}
+                    title="Bấm để xem ảnh đầy đủ"
+                  >
                     <img
                       src={entry.image.startsWith('http') ? entry.image : `${SERVER_BASE}${entry.image}`}
                       alt="Diary entry"
-                      className="w-full h-full object-cover"
+                      className="max-h-[360px] max-w-full h-auto w-auto object-contain rounded-lg transition-serene group-hover:scale-[1.01]"
                     />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-serene flex items-center justify-center pointer-events-none">
+                      <span className="text-xs text-white bg-black/70 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-lg">
+                        <ZoomIn size={14} /> Phóng to ảnh đầy đủ
+                      </span>
+                    </div>
                   </div>
                 )}
 
@@ -525,6 +549,13 @@ export default function DiaryPage() {
           })}
         </div>
       )}
+
+      {/* Lightbox Modal */}
+      <ImageLightbox
+        isOpen={!!lightboxImage}
+        src={lightboxImage}
+        onClose={() => setLightboxImage('')}
+      />
     </OwnerLayout>
   );
 }

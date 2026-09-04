@@ -5,7 +5,7 @@ import OwnerLayout from '../components/OwnerLayout.jsx';
 import ReactMarkdown from 'react-markdown';
 import AudioPlayer from '../components/AudioPlayer.jsx';
 import { useTranslation } from 'react-i18next';
-import { Edit2, Trash2, Share2, EyeOff, Calendar, AlertCircle, Copy, Check, RotateCcw, Heart, Eye } from 'lucide-react';
+import ImageLightbox from '../components/ImageLightbox.jsx';
 
 function SharePasswordModal({ isOpen, onClose, onSubmit }) {
   const { t } = useTranslation();
@@ -144,6 +144,8 @@ export default function LetterViewer() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedPass, setCopiedPass] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  const [lightboxImage, setLightboxImage] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -479,11 +481,15 @@ export default function LetterViewer() {
             <div>
               {/* Cover Image */}
               {letter.coverImage && (
-                <div className="rounded-xl overflow-hidden max-h-[300px] mb-8 border border-gold-text/10">
+                <div 
+                  className="rounded-xl overflow-hidden max-h-[450px] mb-8 border border-gold-text/10 bg-black/40 flex items-center justify-center p-2 cursor-pointer group"
+                  onClick={() => setLightboxImage(letter.coverImage.startsWith('http') ? letter.coverImage : `${SERVER_BASE}${letter.coverImage}`)}
+                  title="Bấm để xem ảnh đầy đủ"
+                >
                   <img 
                     src={letter.coverImage.startsWith('http') ? letter.coverImage : `${SERVER_BASE}${letter.coverImage}`} 
                     alt="Cover" 
-                    className="w-full h-full object-cover opacity-80"
+                    className="max-h-[430px] max-w-full h-auto w-auto object-contain rounded-lg transition-serene group-hover:scale-[1.01]"
                   />
                 </div>
               )}
@@ -573,6 +579,12 @@ export default function LetterViewer() {
         isOpen={isShareModalOpen}
         onClose={() => setIsShareModalOpen(false)}
         onSubmit={handleShare}
+      />
+
+      <ImageLightbox
+        isOpen={!!lightboxImage}
+        src={lightboxImage}
+        onClose={() => setLightboxImage('')}
       />
     </OwnerLayout>
   );
